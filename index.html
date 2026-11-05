@@ -218,9 +218,12 @@ td select{padding:5px 6px;font-size:13px}
         <label for="exSel" style="position:absolute;left:-9999px">Load a real example</label><select id="exSel" style="width:auto;min-width:300px"><option value="">Load a real example…</option><option value="s1">Student 1 (under 30)</option><option value="s2">Student 2 (under 30, US dollars)</option><option value="s3">Student 3 (under 30)</option><option value="a1">Adult 1 (aged 30 to 44)</option></select>
         <button class="btn ghost" type="button" id="runRules">Classify with rules only</button>
         <button class="btn" type="button" id="runAI" hidden>Classify with AI</button>
+        <button class="btn" type="button" id="runRec" hidden>Classify with AI (demo)</button>
+        <a class="btn ghost" id="videoLink" href="#" target="_blank" rel="noopener" hidden style="text-decoration:none">Watch the live AI</a>
         <button class="btn ghost" type="button" id="stopAI" hidden>Stop</button>
       </div>
       <div class="status" id="txStatus"></div>
+      <div class="status" id="demoBadge" hidden><span class="pill diff">Demo mode</span> AI output recorded from Claude (Anthropic) on 5 November 2026 for this example. The live version, inside Claude, classifies any statement.</div>
     </section>
     <section class="panel">
       <h3>Why a spreadsheet is not enough</h3>
@@ -545,6 +548,29 @@ const EXAMPLES = {
 2026-09-26; CB SIXT MONACO; 527.72`}
 };
 let exampleKey = '';
+// AI classifications recorded from Claude (Anthropic) on 5 November 2026 for the four real examples, line by line: [COICOP code, confidence]
+const RECORDED = {
+ s1:[['CP01',.8],['CP03',.97],['CP01',.97],['CP01',.97],['CP073',.95],['CP11',.7],['CP11',.7],['CP01',.95],['CP02',.9],['CP08',.97],['CP073',.97],['CP01',.97],['CP11',.55],['CP073',.95],['CP072',.55],['CP072',.9],['CP073',.97],['CP072',.95],['CP12',.95],['CP045',.9],['CP08',.97]],
+ s2:[['CP11',.7],['CP073',.85],['CP02',.85],['CP073',.9],['CP073',.9],['CP073',.95],['CP03',.97],['CP03',.97],['CP073',.95],['CP01',.97],['CP01',.9],['CP01',.97],['CP073',.9],['CP01',.97],['CP01',.7],['CP09',.95],['CP02',.85],['CP01',.97]],
+ s3:[['CP01',.97],['CP08',.97],['CP072',.9],['CP01',.85],['CP10',.7],['CP072',.9],['CP072',.85],['CP072',.85],['CP072',.9],['CP11',.85],['CP073',.97],['CP073',.85]],
+ a1:[['CP01',.95],['CP072',.9],['CP11',.85],['CP11',.95],['CP045',.95],['CP072',.55],['CP01',.95],['CP09',.97],['CP072',.9],['CP11',.95],['CP03',.97],['CP072',.95],['CP072',.75],['CP08',.97],['CP073',.95],['CP072',.9],['CP072',.9],['CP073',.97],['CP072',.9],['CP09',.75],['CP073',.95],['CP11',.95],['CP09',.85],['CP01',.9],['CP08',.97],['CP073',.85]]
+};
+function syncRec(){ const b=document.getElementById('runRec'); if(sample){ b.hidden=true; return; } const ok = !!exampleKey && document.getElementById('txInput').value===EXAMPLES[exampleKey].text; b.hidden = !ok; if(!ok){ clearInterval(demoTimer); b.disabled=false; document.getElementById('demoBadge').hidden=true; } }
+const VIDEO_URL = '';  // paste the link to the screen recording of the live AI here
+if (VIDEO_URL) { const v=document.getElementById('videoLink'); v.href=VIDEO_URL; v.hidden=false; }
+let demoTimer=null;
+document.getElementById('runRec').addEventListener('click',()=>{
+  if(!exampleKey) return; clearInterval(demoTimer);
+  const btn=document.getElementById('runRec'); btn.disabled=true;
+  tx = parse(EXAMPLES[exampleKey].text); const rec = RECORDED[exampleKey];
+  tx.forEach(t=>{ t.ai=null; t.conf=null; t.final=t.rule; });
+  document.getElementById('demoBadge').hidden=false; renderTx();
+  let i=0; status(`Reading ${tx.length} lines…`);
+  demoTimer=setInterval(()=>{
+    if(i<tx.length && rec[i]){ tx[i].ai=rec[i][0]; tx[i].conf=rec[i][1]; tx[i].final=tx[i].ai; i++; status(`Classifying line ${i} of ${tx.length}…`); renderTx(); }
+    else { clearInterval(demoTimer); btn.disabled=false; renderTx(); status(`AI classified ${tx.filter(t=>t.ai).length} of ${tx.length} lines. Lines where it disagrees with the rules are highlighted.`); }
+  }, 140);
+});
 let tx = [];
 function parse(text){
   return text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{
@@ -576,8 +602,8 @@ function renderTx(){
   box.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{tx[+s.dataset.i].final=s.value||null; renderTx();}));
 }
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-document.getElementById('exSel').addEventListener('change',e=>{ const k=e.target.value; if(!k) return; const ex=EXAMPLES[k]; document.getElementById('txInput').value=ex.text; exampleKey=k; tx=[]; renderTx(); const n=ex.text.split('\n').length; status(`${ex.label} loaded: ${n} real card and bank lines from an anonymised statement (a selection of the statement; names, card and account numbers removed)${k==='s2'?'. Amounts in US dollars':''}. Classify it with rules, then with AI.`); });
-document.getElementById('txInput').addEventListener('input',()=>{ if(!exampleKey || document.getElementById('txInput').value!==EXAMPLES[exampleKey].text){ exampleKey=''; document.getElementById('exSel').value=''; } });
+document.getElementById('exSel').addEventListener('change',e=>{ const k=e.target.value; if(!k) return; const ex=EXAMPLES[k]; document.getElementById('txInput').value=ex.text; exampleKey=k; tx=[]; renderTx(); syncRec(); const n=ex.text.split('\n').length; status(`${ex.label} loaded: ${n} real card and bank lines from an anonymised statement (a selection of the statement; names, card and account numbers removed)${k==='s2'?'. Amounts in US dollars':''}. Classify it with rules, then with AI.`); });
+document.getElementById('txInput').addEventListener('input',()=>{ if(!exampleKey || document.getElementById('txInput').value!==EXAMPLES[exampleKey].text){ exampleKey=''; document.getElementById('exSel').value=''; } syncRec(); });
 document.getElementById('runRules').addEventListener('click',()=>{ tx=parse(document.getElementById('txInput').value); tx.forEach(t=>t.final=t.rule); renderTx(); status(tx.length?`Rules applied to ${tx.length} lines.`:'Nothing to classify yet: paste at least one transaction.'); });
 document.getElementById('useBasket').addEventListener('click',()=>{
   const sum={}; tx.forEach(t=>{ if(t.final && t.final!=='EXCL') sum[t.final]=(sum[t.final]||0)+t.amount; });
@@ -591,7 +617,8 @@ document.getElementById('useBasket').addEventListener('click',()=>{
 let sample=null, ctl=null;
 (async()=>{ try{ sample = window.claude && await window.claude.use('sample'); }catch(e){ sample=null; }
   if(sample){ document.getElementById('runAI').hidden=false; document.getElementById('runBrief').hidden=false; }
-  else { document.getElementById('aiNote').textContent='AI classification runs when this page is opened in Claude. Rules and manual categories still work.'; }
+  else { document.getElementById('aiNote').textContent='Live AI classification runs when this page is opened in Claude. On this public page, load a real example and press “Classify with AI (demo)” to see what the AI returns.'; }
+  syncRec();
 })();
 document.getElementById('stopAI').addEventListener('click',()=>ctl&&ctl.abort());
 document.getElementById('runAI').addEventListener('click',async()=>{
