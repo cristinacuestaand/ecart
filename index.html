@@ -129,6 +129,8 @@ td.d{white-space:nowrap}
   .strip{grid-template-columns:1fr 1fr} .metric:nth-child(3){border-left:0;padding-left:0}
   .tabs{margin-left:0}
 }
+#printArea{display:none}
+@media print{ body.printing > *:not(main){display:none!important} body.printing main .wrap > *{display:none!important} body.printing #view-review{display:block!important} body.printing #view-review .layout{display:block} body.printing #view-review .layout > *{display:none!important} body.printing #view-review .layout > div:last-child{display:block!important} body.printing #view-review .layout > div:last-child > *{display:none!important} body.printing #view-review .layout > div:last-child > #analysisPanel{display:block!important;border:0;padding:0} body.printing #analysisPanel > *{display:none!important} body.printing #printArea{display:block!important} body{background:#fff} }
 @media (prefers-reduced-motion:no-preference){ .verdict{transition:opacity .25s} }
 </style>
 </head>
@@ -186,11 +188,13 @@ td.d{white-space:nowrap}
 
       <section class="panel" id="analysisPanel">
         <h3>Analysis for the client review</h3>
-        <p class="d">Key findings are calculated from the data on this page. The written briefing is drafted by AI from the same figures, for the banker to check before the meeting.</p>
+        <p class="d">Key findings are calculated from the data on this page. The written briefing is drafted by AI from the same figures, and can be saved as a PDF.</p>
         <ol class="findings" id="findings"></ol>
         <div class="btns"><button class="btn" type="button" id="runBriefDemo" hidden>Write the banker’s briefing (demo)</button><button class="btn" type="button" id="runBrief" hidden>Write the banker’s briefing with AI</button><button class="btn ghost" type="button" id="stopBrief" hidden>Stop</button></div>
         <div class="status" id="briefStatus"></div>
         <div class="brief" id="brief" hidden></div>
+        <div class="btns" id="briefDl" hidden><button class="btn" type="button" id="pdfBrief">Save briefing as PDF</button><button class="btn ghost" type="button" id="htmlBrief">Download (.html)</button></div>
+        <div id="printArea" aria-hidden="true"></div>
       </section>
 
       <section class="panel">
@@ -312,7 +316,7 @@ function renderReview(){
   const v = document.getElementById('verdict');
   const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
   const tNow = r.w.reduce((s,wi,i)=>s+wi*TODAY.inf[i],0), hNow = TODAY[state.hedge], gNow = tNow-hNow;
-  document.getElementById('today').innerHTML = `<span class="tag2">Today (${TODAY.label})</span>${cap(clientName())} faces <b>${pct(tNow)}</b> inflation a year, against <b>${pct(hNow)}</b> for the hedge index and ${pct(TODAY.cp00)} official French inflation: ${gNow>0?`<b style="color:var(--red)">${pts(gNow)} not covered</b>, ${eur(gNow*r.W)} a year on these withdrawals`:`covered with ${pts(-gNow)} to spare`}. Energy is up ${pct(TODAY.inf[6])} and fuels ${pct(TODAY.inf[10])} on a year earlier.`;
+  document.getElementById('today').innerHTML = `<span class="tag2">Today (${TODAY.label})</span>${cap(clientName())} faces <b>${pct(tNow)}</b> inflation a year, against <b>${pct(hNow)}</b> for the hedge index and ${pct(TODAY.cp00)} official French inflation: ${gNow>0?`<b style="color:var(--red)">${pts(gNow)} not covered</b>, ${eur(gNow*r.W)} a year on these withdrawals`:`covered with ${pts(-gNow)} to spare`}. Household energy is up ${pct(TODAY.inf[6])} and fuel and vehicle running costs ${pct(TODAY.inf[10])} on a year earlier.`;
   if (gap > 0) {
     v.innerHTML = `If a 2022-type shock hit today’s basket, ${clientName()} would see costs rise <b>${pct(r.scen)}</b>. The hedge would pay <b>${pct(r.hedgeDec)}</b>, leaving <b class="neg">${eur(r.uncovered)}</b> of the year’s spending uncovered.`;
   } else {
@@ -400,7 +404,7 @@ function renderFindings(){
     `<b>How the basket differs.</b> Largest gaps with the official basket: ${f.diffs.map(o=>`${LABELS[o.c]} ${pct(o.w)} (${o.d>=0?'+':''}${(o.d*100).toFixed(1).replace('-','−')} pt)`).join(', ')}.`
   ];
   document.getElementById('findings').innerHTML = items.map(t=>`<li>${t}</li>`).join('');
-  document.getElementById('brief').hidden = true; document.getElementById('briefStatus').textContent = '';
+  document.getElementById('brief').hidden = true; document.getElementById('briefStatus').textContent = ''; document.getElementById('briefDl').hidden = true;
   syncBrief();
 }
 let briefCtl=null;
@@ -426,8 +430,8 @@ async function writeBrief(){
     document.getElementById('brief').innerHTML =
       `<p class="bh">${esc2(out.headline)}</p><h4>Situation</h4><p>${esc2(out.situation)}</p><h4>Drivers</h4><p>${esc2(out.drivers)}</p>` +
       `<h4>Options to discuss</h4><ul>${(Array.isArray(out.options)?out.options:[]).map(o=>`<li>${esc2(o)}</li>`).join('')}</ul>` +
-      `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)} Drafted by AI from the figures above; check before use.</p>`;
-    document.getElementById('brief').hidden = false; document.getElementById('briefStatus').textContent = '';
+      `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)}</p>`;
+    document.getElementById('brief').hidden = false; document.getElementById('briefDl').hidden = false; document.getElementById('briefStatus').textContent = '';
   }catch(e){
     const msg={not_granted:'AI drafting was not allowed in this view. The key findings above still apply.',rate_limited:'Too many requests just now. Wait a minute, then try again.',aborted:'Stopped. Nothing was changed.'}[e&&e.code];
     if(e&&e.code==='not_granted') btn.hidden=true;
@@ -487,9 +491,28 @@ function showBrief(out, demo){
   document.getElementById('brief').innerHTML = (demo?'<p style="margin:0 0 10px"><span class="pill diff">Demo mode</span> <span style="color:var(--muted);font-size:13px">Briefing recorded from Claude (Anthropic) on 5 November 2026 for this case.</span></p>':'') +
     `<p class="bh">${esc2(out.headline)}</p><h4>Situation</h4><p>${esc2(out.situation)}</p><h4>Drivers</h4><p>${esc2(out.drivers)}</p>` +
     `<h4>Options to discuss</h4><ul>${(Array.isArray(out.options)?out.options:[]).map(o=>`<li>${esc2(o)}</li>`).join('')}</ul>` +
-    `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)} Drafted by AI from the figures above; check before use.</p>`;
-  document.getElementById('brief').hidden = false;
+    `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)}</p>`;
+  document.getElementById('brief').hidden = false; document.getElementById('briefDl').hidden = false;
 }
+function briefDoc(){
+  const who = state.profile==='__custom' ? (state.customLabel||'Client basket') : state.profile+' (survey average)';
+  const d = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const brief = document.getElementById('brief').innerHTML;
+  return `<div class="pd"><div class="ph"><span class="pw">écart</span><span class="pm">Client briefing · ${d}</span></div>` +
+    `<p class="pmeta"><b>Basket:</b> ${esc(who)} &nbsp; <b>Hedge:</b> ${esc(hedgeLabel())} &nbsp; <b>Annual withdrawals:</b> ${document.getElementById('wHint').textContent.split('.')[0].replace('Annual withdrawals: ','')}</p>` +
+    `<p class="ptoday">${document.getElementById('today').innerHTML}</p><p class="pverdict">${document.getElementById('verdict').innerHTML}</p>` +
+    `<h4>Key findings</h4><ol>${document.getElementById('findings').innerHTML}</ol><div class="pbrief">${brief}</div>` +
+    `<p class="pfoot">Prepared with écart (prototype by Group C, International University of Monaco). Figures: Eurostat HICP and Household Budget Survey; for the banker’s review before the client meeting.</p></div>`;
+}
+const PRINT_CSS = `body{font:11pt/1.45 "Public Sans",Arial,sans-serif;color:#13222B;margin:0}.pd{max-width:720px;margin:0 auto;padding:28px}.ph{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #0B3A4A;padding-bottom:6px;margin-bottom:10px}.pw{font:600 24pt "Source Serif 4",Georgia,serif;color:#0B3A4A}.pm{color:#56676F}.pmeta{color:#56676F;font-size:10pt}.ptoday{border-left:4px solid #A87B2F;padding:6px 10px;background:#FAF6EE}.pverdict{font:600 14pt/1.3 "Source Serif 4",Georgia,serif}h4{font:600 10pt Arial,sans-serif;color:#56676F;margin:14px 0 4px;text-transform:none}ol,ul{padding-left:20px}.pbrief .bh{font:600 13pt "Source Serif 4",Georgia,serif}.pbrief .pill{font-size:9pt;color:#A87B2F}.pfoot{color:#56676F;font-size:9pt;border-top:1px solid #D8DFE1;padding-top:8px;margin-top:16px}.tag2{font-weight:700;color:#A87B2F;margin-right:6px}b.neg,.neg{color:#C8102E}.pos{color:#3E8F84}`;
+document.getElementById('pdfBrief').addEventListener('click',()=>{
+  const pa=document.getElementById('printArea'); pa.innerHTML = `<style>${PRINT_CSS}</style>` + briefDoc();
+  document.body.classList.add('printing'); window.print(); setTimeout(()=>document.body.classList.remove('printing'), 500);
+});
+document.getElementById('htmlBrief').addEventListener('click',()=>{
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>écart client briefing</title><style>${PRINT_CSS}</style></head><body>${briefDoc()}</body></html>`;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download='ecart_client_briefing.html'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 1000);
+});
 document.getElementById('runBriefDemo').addEventListener('click',()=>{
   const k = briefKey(); if(!k) return; const b=document.getElementById('runBriefDemo'); b.disabled=true;
   document.getElementById('brief').hidden=true; document.getElementById('briefStatus').textContent='Writing the briefing…';
