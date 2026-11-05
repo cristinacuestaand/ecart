@@ -202,7 +202,7 @@ td select{padding:5px 6px;font-size:13px}
           <div class="chart" id="basket"></div>
         </section>
       </div>
-      <p class="foot">Prototype by Group C, International University of Monaco (Statistics and Financial Data Analysis). Prices: Eurostat HICP for France (prc_hicp_midx) and HICP excluding tobacco for the euro area and France. Baskets: Eurostat Household Budget Survey 2015 (hbs_str_t225, hbs_str_t223), imputed rent excluded. The French index stands in for the INSEE index used by OATi. Survey profiles are group averages, not real clients. For discussion only; not investment advice.</p>
+      <p class="foot">Prototype by Group C, International University of Monaco (Statistics and Financial Data Analysis). Prices: Eurostat HICP for France (prc_hicp_midx) and HICP excluding tobacco for the euro area and France. Baskets: Eurostat Household Budget Survey 2015 (hbs_str_t225, hbs_str_t223), imputed rent excluded. The French index stands in for the INSEE index used by OATi. Survey profiles are group averages, not real clients.</p>
     </div>
   </div>
 </div>
@@ -215,7 +215,7 @@ td select{padding:5px 6px;font-size:13px}
       <label for="txInput" class="visually-hidden" style="position:absolute;left:-9999px">Transactions</label>
       <textarea id="txInput" spellcheck="false" placeholder="2026-09-02; CB CARREFOUR MARKET MONACO; 86.40"></textarea>
       <div class="btns">
-        <button class="btn ghost" type="button" id="loadEx">Load example statement</button>
+        <label for="exSel" style="position:absolute;left:-9999px">Load a real example</label><select id="exSel" style="width:auto;min-width:300px"><option value="">Load a real example…</option><option value="s1">Student 1 (under 30)</option><option value="s2">Student 2 (under 30, US dollars)</option><option value="s3">Student 3 (under 30)</option><option value="a1">Adult 1 (aged 30 to 44)</option></select>
         <button class="btn ghost" type="button" id="runRules">Classify with rules only</button>
         <button class="btn" type="button" id="runAI" hidden>Classify with AI</button>
         <button class="btn ghost" type="button" id="stopAI" hidden>Stop</button>
@@ -277,7 +277,7 @@ function compute(hk){
 const pct = (x,d=1) => (x*100).toFixed(d).replace('-','−')+'%';
 const pts = (x,d=2) => (x*100).toFixed(d).replace('-','−')+' pt';
 const eur = x => (x<0?'−':'')+'€'+Math.round(Math.abs(x)).toLocaleString('en-GB');
-function clientName(){ return state.profile==='__custom' ? 'this client' : 'a household '+({'Under 30':'under 30','Aged 30 to 44':'aged 30 to 44','Aged 45 to 59':'aged 45 to 59','Aged 60 or over':'aged 60 or over','Income quintile 1':'in the lowest income fifth','Income quintile 2':'in the second income fifth','Income quintile 3':'in the middle income fifth','Income quintile 4':'in the fourth income fifth','Top 20% income':'in the top 20% by income'})[state.profile]; }
+function clientName(){ return state.profile==='__custom' ? (state.customWho ? 'this client ('+state.customWho+')' : 'this client') : 'a household '+({'Under 30':'under 30','Aged 30 to 44':'aged 30 to 44','Aged 45 to 59':'aged 45 to 59','Aged 60 or over':'aged 60 or over','Income quintile 1':'in the lowest income fifth','Income quintile 2':'in the second income fifth','Income quintile 3':'in the middle income fifth','Income quintile 4':'in the fourth income fifth','Top 20% income':'in the top 20% by income'})[state.profile]; }
 const hedgeLabel = () => state.hedge==='ea' ? 'the euro area index (excl. tobacco)' : 'the French index (excl. tobacco)';
 
 // ---------- render review ----------
@@ -416,7 +416,7 @@ const sel = document.getElementById('profile');
 function fillProfiles(){
   const o = k=>`<option value="${k}" ${k===state.profile?'selected':''}>${k}</option>`, ks=Object.keys(D.profiles);
   sel.innerHTML = `<optgroup label="Survey averages by age">${ks.slice(0,4).map(o).join('')}</optgroup><optgroup label="Survey averages by income">${ks.slice(4).map(o).join('')}</optgroup>` +
-    (state.custom?`<option value="__custom" ${state.profile==='__custom'?'selected':''}>Basket from transactions</option>`:'');
+    (state.custom?`<option value="__custom" ${state.profile==='__custom'?'selected':''}>${state.customLabel||'Basket from transactions'}</option>`:'');
 }
 sel.addEventListener('change',()=>{state.profile=sel.value; document.getElementById('profileHint').textContent = state.profile==='__custom' ? 'Built from the classified transactions: real spending, not a group average.' : 'Survey average for France (Eurostat, 2015). Replace it with a basket built from the client’s transactions.'; renderReview();});
 document.querySelectorAll('#hedgeSeg button').forEach(b=>b.addEventListener('click',()=>{state.hedge=b.dataset.h; document.querySelectorAll('#hedgeSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderReview();}));
@@ -435,24 +435,116 @@ document.querySelector('.brand').addEventListener('click',e=>{ e.preventDefault(
 // ---------- transactions ----------
 const RULES=[['CARREFOUR','CP01'],['LECLERC','CP01'],['AUCHAN','CP01'],['MONOPRIX','CP01'],['LIDL','CP01'],['INTERMARCHE','CP01'],['CASINO','CP01'],['FRANPRIX','CP01'],['PICARD','CP01'],['SPAR','CP01'],['BOULANGERIE','CP01'],['TABAC','CP02'],['NICOLAS','CP02'],['ZARA','CP03'],['H&M','CP03'],['MANGO','CP03'],['LOYER','CP041'],['LEROY MERLIN','CP043'],['CASTORAMA','CP043'],['VEOLIA','CP044'],['SUEZ','CP044'],['EDF','CP045'],['ENGIE','CP045'],['IKEA','CP05'],['DARTY','CP05'],['PHARMACIE','CP06'],['DOCTOLIB','CP06'],['OPTIC','CP06'],['TOTALENERGIES','CP072'],['TOTAL ','CP072'],['ESSO','CP072'],['SHELL','CP072'],['STATION','CP072'],['PEAGE','CP072'],['PARKING','CP072'],['SNCF','CP073'],['RATP','CP073'],['UBER','CP073'],['BOLT','CP073'],['EASYJET','CP073'],['RYANAIR','CP073'],['AIR FRANCE','CP073'],['ORANGE','CP08'],['SFR','CP08'],['BOUYGUES','CP08'],['FREE MOBILE','CP08'],['NETFLIX','CP09'],['SPOTIFY','CP09'],['FNAC','CP09'],['CINEMA','CP09'],['DECATHLON','CP09'],['UDEMY','CP10'],['RESTAURANT','CP11'],['MCDONALD','CP11'],['STARBUCKS','CP11'],['DELIVEROO','CP11'],['UBER EATS','CP11'],['HOTEL','CP11'],['AIRBNB','CP11'],['SEPHORA','CP12'],['COIFF','CP12'],['ASSURANCE','CP12'],['AMAZON','CP05']];
 const ruleOf = d => { let hit=null; const u=d.toUpperCase(); for(const [k,c] of RULES) if(u.includes(k)) hit=c; return hit; };
-const EXAMPLE = `2026-09-02; CB CARREFOUR MARKET MONACO; 86.40
-2026-09-03; PRLV SEPA EDF CLIENTS PARTICULIERS; 142.00
-2026-09-04; CB TOTALENERGIES NICE ARENAS; 68.40
-2026-09-05; CB PHARMACIE DU PORT; 23.10
-2026-09-07; PRLV SEPA TOTALENERGIES ELECTRICITE ET GAZ; 96.00
-2026-09-08; CB SNCF CONNECT; 54.00
-2026-09-10; CB BRASSERIE DU PORT MONACO; 38.50
-2026-09-12; CB AMAZON MKTP FR; 41.99
-2026-09-14; CB MAISON DU CAFE; 6.20
-2026-09-15; PRLV ORANGE SA; 39.99
-2026-09-18; CB INTERMARCHE BEAUSOLEIL; 112.30
-2026-09-20; VIR PERMANENT LOYER SEPTEMBRE; 1450.00
-2026-09-21; CB CHEZ MARIO PIZZERIA; 27.00
-2026-09-23; PRLV SEPA AXA HABITATION; 31.00
-2026-09-25; CB INDIGO PARKING MONACO; 12.00
-2026-09-26; CB GRAND FRAIS NICE; 54.80
-2026-09-27; CB FNAC NICE; 24.90
-2026-09-28; VIR VERS EPARGNE LIVRET A; 500.00`;
+const EXAMPLE = `2026-02-17; CB DYNEFF ST JULIEN 2515444; 11.55
+2026-08-10; CB E.LECLERC; 9.15
+2026-09-02; CB ZARA FRANCE; 25.95
+2026-09-04; CB CARREFOUR MARKET; 21.15
+2026-09-08; CB CARREFOUR CITY; 28.90
+2026-09-10; PRLV SEPA FREE MOBILE; 20.18
+2026-09-12; CB PARKINGS MONACO MONACO CEDEX; 1.00
+2026-09-13; CB CARREFCITYSCO MENTON; 6.07
+2026-09-15; CB PASTA VERSA MONACO; 12.18
+2026-09-16; CB NICOLAS MONACO; 7.98
+2026-09-16; CB BOLT.EU TALLINN; 36.29
+2026-09-18; CB EXPL HOTEL SBM; 46.00
+2026-09-18; CB BOLT.EU TALLINN; 64.56
+2026-09-20; CB MCGRAW-HIL LONDON; 49.80
+2026-09-22; CB UBER *TRIP; 51.08
+2026-09-23; CB ZARA FRANCE NICE; 80.31
+2026-09-23; CB TABAC LE MEGOT; 10.00
+2026-09-24; PRLV ORANGE SA-ORANGE; 40.88
+2026-09-24; CB UBER *TRIP; 30.20
+2026-09-24; CB SNCF VOYAGEURS; 6.10
+2026-09-27; CB SC BOUCHERIE DE NICE; 17.33
+2026-10-02; CB ESCOTA 06MANDELIEU; 3.40
+2026-10-04; CB CARREFOUR CITY NICE; 48.38
+2026-10-04; CB 2699 - PARKING F ZAVENTEM; 5.00
+2026-10-07; CB CARREFOUR CITY; 59.76
+2026-10-09; CB NYX*LESPLAISIRSDUPALAIS; 2.50
+2026-10-17; CB EASYJET; 193.34
+2026-10-17; CB STATION AVIA 4296172; 120.74
+2026-10-18; CB SEPHORA 4320258; 1.99
+2026-10-20; BIZUM COMPRA BIZUM IBERDROLA; 12.14`;
+const EXAMPLES = {
+ s1:{label:'Student 1 (under 30)', who:'Student 1, under 30', text:`2026-08-10; CB E.LECLERC; 9.15
+2026-09-02; CB ZARA FRANCE; 25.95
+2026-09-04; CB CARREFOUR MARKET; 21.15
+2026-09-08; CB CARREFOUR CITY; 28.90
+2026-09-12; CB UBR* PENDING.UBER.COM; 11.34
+2026-09-14; CB PASTA VERSA MONACO; 3.50
+2026-09-18; CB EXPL HOTEL SBM; 46.00
+2026-09-22; CB MARCHE U; 94.42
+2026-09-23; CB TABAC LE MEGOT; 10.00
+2026-09-24; PRLV ORANGE SA-ORANGE; 40.88
+2026-09-24; CB SNCF VOYAGEURS; 6.10
+2026-10-07; CB CARREFOUR CITY; 59.76
+2026-10-09; CB NYX*LESPLAISIRSDUPALAIS; 2.50
+2026-10-11; CB UBR* PENDING.UBER.COM; 36.95
+2026-10-15; CB EMV BORNES NFC; 4.90
+2026-10-16; CB PARKINGS MONACO; 6.00
+2026-10-17; CB EASYJET; 193.34
+2026-10-17; CB STATION AVIA 4296172; 120.74
+2026-10-18; CB SEPHORA 4320258; 1.99
+2026-10-20; BIZUM COMPRA BIZUM IBERDROLA; 12.14
+2026-10-23; PRLV ORANGE SA-ORANGE; 40.48`},
+ s2:{label:'Student 2 (under 30)', who:'Student 2, under 30', text:`2026-09-15; PASTA VERSA MONACO FRA; 12.18
+2026-09-16; ZEST- KEOLIS MENTON FRA; 2.31
+2026-09-16; NICOLAS MONACO FRA; 7.98
+2026-09-16; BOLT.EU TALLINN EST; 36.29
+2026-09-18; BOLT.EU TALLINN EST; 64.56
+2026-09-22; UBER *TRIP; 51.08
+2026-09-23; ZARA FRANCE NICE FRA; 20.61
+2026-09-23; ZARA FRANCE NICE FRA; 80.31
+2026-09-24; UBER *TRIP; 30.20
+2026-09-25; CARREFOUR CITY NICE FRA; 19.55
+2026-09-27; SC BOUCHERIE DE NICE FRA; 17.33
+2026-09-27; CARREFOUR CITY NICE FRA; 13.12
+2026-09-29; BOLT.EU TALLINN EST; 37.47
+2026-10-04; CARREFOUR CITY NICE FRA; 48.38
+2026-10-05; LK MARKET NICE FRA; 3.39
+2026-10-06; HELP.HBOMAX.COM NEW YORK NY; 10.99
+2026-10-09; NICOLAS MONACO FRA; 13.42
+2026-10-11; CARREFOUR CITY NICE FRA; 21.39`},
+ s3:{label:'Student 3 (under 30)', who:'Student 3, under 30', text:`2026-09-07; CARTE CARREFOUR MONACO MONACO; 3.29
+2026-09-10; PRLV SEPA FREE MOBILE; 20.18
+2026-09-12; CARTE PARKINGS MONACO MONACO CEDEX; 1.00
+2026-09-13; CARTE CARREFCITYSCO MENTON; 6.07
+2026-09-20; CARTE MCGRAW-HIL LONDON; 49.80
+2026-09-26; CARTE PARKINGS MONACO MONACO CEDEX; 2.80
+2026-10-02; CARTE ESCOTA 06MANDELIEU L; 1.50
+2026-10-02; CARTE ESCOTA 06MANDELIEU L; 3.40
+2026-10-04; CARTE 2699 - PARKING F ZAVENTEM; 5.00
+2026-10-04; CARTE GAUFRE DE BXL BRUXELLES; 33.50
+2026-10-04; CARTE EASYJET AIR ZAVENTEM; 109.49
+2026-10-04; CARTE STIB BRUXELLES; 4.80`},
+ a1:{label:'Adult 1 (aged 30 to 44)', who:'Adult 1, aged 30 to 44', text:`2026-08-31; CB MARCHE U; 282.78
+2026-09-03; CB STATION-SERVICE; 40.71
+2026-09-06; CB HOTEL OLIVIA BALME BARCELONA; 18.48
+2026-09-06; CB RESTAURANT GRESCA BARCELONA; 262.00
+2026-09-07; PRLV SEPA SMEG ELECTRICITE; 191.24
+2026-09-07; CB EMV BORNES NFC; 68.40
+2026-09-12; CB MARCHE U; 286.21
+2026-09-13; CB NETFLIX.COM; 21.99
+2026-09-14; CB STATION-SERVICE; 39.83
+2026-09-15; CB DELIVEROO; 113.97
+2026-09-15; CB ZARA 3443; 189.80
+2026-09-16; CB STATION ESSO; 132.75
+2026-09-16; CB SC ESSO; 18.00
+2026-09-17; PRLV SEPA ORANGE SA-ORANGE ABONNEMENT FIBRE; 51.99
+2026-09-18; CB UBR* PENDING.UBER. AMSTERDAM; 28.98
+2026-09-18; CB PARKING ST LOUIS; 6.10
+2026-09-21; PRLV SEPA AUTOROUTES DU SUD DE LA FRANCE; 5.40
+2026-09-21; CB TRANSAVIA; 405.00
+2026-09-22; CB STATION-SERVICE; 39.03
+2026-09-22; CB FNAC.COM; 21.50
+2026-09-24; CB UBR* PENDING.UBER. AMSTERDAM; 12.78
+2026-09-25; CB DELIVEROO; 110.18
+2026-09-25; CB AMAZON PRIME FR; 6.99
+2026-09-25; CB UEP*SUPER U; 182.16
+2026-09-25; PRLV SEPA ORANGE SA-ORANGE ABONNEMENT MOBILE; 42.72
+2026-09-26; CB SIXT MONACO; 527.72`}
+};
+let exampleKey = '';
 let tx = [];
 function parse(text){
   return text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{
@@ -484,12 +576,13 @@ function renderTx(){
   box.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{tx[+s.dataset.i].final=s.value||null; renderTx();}));
 }
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-document.getElementById('loadEx').addEventListener('click',()=>{ document.getElementById('txInput').value=EXAMPLE; status('Example statement loaded (invented lines for the demo). Classify it with rules, then with AI.'); });
+document.getElementById('exSel').addEventListener('change',e=>{ const k=e.target.value; if(!k) return; const ex=EXAMPLES[k]; document.getElementById('txInput').value=ex.text; exampleKey=k; tx=[]; renderTx(); const n=ex.text.split('\n').length; status(`${ex.label} loaded: ${n} real card and bank lines from an anonymised statement (a selection of the statement; names, card and account numbers removed)${k==='s2'?'. Amounts in US dollars':''}. Classify it with rules, then with AI.`); });
+document.getElementById('txInput').addEventListener('input',()=>{ if(!exampleKey || document.getElementById('txInput').value!==EXAMPLES[exampleKey].text){ exampleKey=''; document.getElementById('exSel').value=''; } });
 document.getElementById('runRules').addEventListener('click',()=>{ tx=parse(document.getElementById('txInput').value); tx.forEach(t=>t.final=t.rule); renderTx(); status(tx.length?`Rules applied to ${tx.length} lines.`:'Nothing to classify yet: paste at least one transaction.'); });
 document.getElementById('useBasket').addEventListener('click',()=>{
   const sum={}; tx.forEach(t=>{ if(t.final && t.final!=='EXCL') sum[t.final]=(sum[t.final]||0)+t.amount; });
   const tot=Object.values(sum).reduce((a,b)=>a+b,0); if(!tot) return;
-  state.custom = D.codes.map(c=>(sum[c]||0)/tot); state.profile='__custom'; fillProfiles();
+  state.custom = D.codes.map(c=>(sum[c]||0)/tot); state.customLabel = exampleKey ? EXAMPLES[exampleKey].label+', real data' : 'Basket from transactions'; state.customWho = exampleKey ? EXAMPLES[exampleKey].who : ''; state.profile='__custom'; fillProfiles();
   document.getElementById('profileHint').textContent='Built from the classified transactions: real spending, not a group average.';
   location.hash='review'; renderReview();
 });
