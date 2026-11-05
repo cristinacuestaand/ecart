@@ -56,6 +56,8 @@ select,input[type=number],textarea{width:100%;font:15px var(--sans);color:var(--
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .seg button{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 6px;font:500 13px/1.25 var(--sans);cursor:pointer;text-align:left}
 .seg button[aria-pressed="true"]{border-color:var(--harbour);box-shadow:inset 0 0 0 1px var(--harbour);background:var(--harbour-soft)}
+.today{margin:0 0 14px;padding:10px 14px;border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:8px;background:var(--surface);font-size:15px;line-height:1.45;max-width:78ch}
+.today .tag2{display:inline-block;font-weight:700;color:var(--brass);margin-right:6px}
 .verdict{font:400 clamp(24px,2.7vw,34px)/1.25 var(--serif);margin:0 0 6px;max-width:30ch;letter-spacing:-.005em}
 .verdict b{font-weight:700}
 .verdict .neg{color:var(--red)} .verdict .pos{color:var(--glass)}
@@ -107,6 +109,21 @@ td select{padding:5px 6px;font-size:13px}
 .pill.diff{background:var(--band);color:var(--brass)}
 .empty{color:var(--muted);padding:28px 0;text-align:center}
 [hidden]{display:none!important}
+td.d{white-space:nowrap}
+.layout>*,.two>*,.tx-top>*{min-width:0}
+@media (max-width:640px){
+  .tbl table,.tbl tbody,.tbl tr,.tbl td{display:block;min-width:0;width:100%}
+  .tbl table{min-width:0} .tbl thead{display:none}
+  .tbl tr{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .tbl td{border:0;padding:0;width:auto}
+  .tbl td.desc{grid-column:1 / -1;order:-1;font-weight:600}
+  .tbl td.d{color:var(--muted);font-size:12.5px}
+  .tbl td.num{text-align:right;grid-column:3}
+  .tbl td[data-l="Rules"]::before,.tbl td[data-l="AI"]::before{content:attr(data-l) " ";color:var(--muted);font-size:12px}
+  .tbl td.fin{grid-column:1 / -1}
+  #lineChart svg{min-width:640px} #drivers svg,#basket svg{min-width:400px}
+  .score .v{font-size:22px}
+}
 @media (max-width:900px){
   .layout{grid-template-columns:1fr} .layout>aside{order:2} .two,.tx-top{grid-template-columns:1fr} .tag{display:none}
   .strip{grid-template-columns:1fr 1fr} .metric:nth-child(3){border-left:0;padding-left:0}
@@ -155,13 +172,14 @@ td select{padding:5px 6px;font-size:13px}
         <input id="portfolio" type="number" min="0" step="100000" value="2000000">
       </div>
       <div class="field">
-        <label for="rate">Withdrawal rate (% a year)</label>
+        <label for="rate">Withdrawal rate (% a year)*</label>
         <input id="rate" type="number" min="0" max="20" step="0.5" value="4">
         <div class="hint" id="wHint"></div>
       </div>
     </aside>
 
     <div>
+      <p class="today" id="today"></p>
       <p class="verdict" id="verdict" aria-live="polite"></p>
       <p class="sub" id="verdictSub"></p>
       <div class="strip" id="strip"></div>
@@ -170,13 +188,13 @@ td select{padding:5px 6px;font-size:13px}
         <h3>Analysis for the client review</h3>
         <p class="d">Key findings are calculated from the data on this page. The written briefing is drafted by AI from the same figures, for the banker to check before the meeting.</p>
         <ol class="findings" id="findings"></ol>
-        <div class="btns"><button class="btn" type="button" id="runBrief" hidden>Write the banker’s briefing with AI</button><button class="btn ghost" type="button" id="stopBrief" hidden>Stop</button></div>
+        <div class="btns"><button class="btn" type="button" id="runBriefDemo" hidden>Write the banker’s briefing (demo)</button><button class="btn" type="button" id="runBrief" hidden>Write the banker’s briefing with AI</button><button class="btn ghost" type="button" id="stopBrief" hidden>Stop</button></div>
         <div class="status" id="briefStatus"></div>
         <div class="brief" id="brief" hidden></div>
       </section>
 
       <section class="panel">
-        <h3>Client inflation against the hedge index, 2016–2025</h3>
+        <h3>Client inflation against the hedge index, 2016–2025, as if today’s basket had been held</h3>
         <p class="d">Year-on-year inflation, monthly. Red: the client’s costs rise faster than the hedge pays. Green: the hedge pays more. Shaded bands are shock months (official French inflation above 3%).</p>
         <div class="legend">
           <span><i style="background:var(--harbour)"></i>Client basket</span>
@@ -202,7 +220,7 @@ td select{padding:5px 6px;font-size:13px}
           <div class="chart" id="basket"></div>
         </section>
       </div>
-      <p class="foot">Prototype by Group C, International University of Monaco (Statistics and Financial Data Analysis). Prices: Eurostat HICP for France (prc_hicp_midx) and HICP excluding tobacco for the euro area and France. Baskets: Eurostat Household Budget Survey 2015 (hbs_str_t225, hbs_str_t223), imputed rent excluded. The French index stands in for the INSEE index used by OATi. Survey profiles are group averages, not real clients.</p>
+      <p class="foot">Prototype by Group C, International University of Monaco (Statistics and Financial Data Analysis). Prices: Eurostat HICP for France (prc_hicp_midx, 2016–2025; latest month from prc_hicp_minr, COICOP 2018, mapped to the same 17 categories) and HICP excluding tobacco for the euro area and France. Baskets: Eurostat Household Budget Survey 2015 (hbs_str_t225, hbs_str_t223), imputed rent excluded. The French index stands in for the INSEE index used by OATi. Survey profiles are group averages, not real clients.</p>
     </div>
   </div>
 </div>
@@ -256,6 +274,8 @@ const D = {"codes":["CP01","CP02","CP03","CP041","CP043","CP044","CP045","CP05",
 const LABELS = {CP01:'Food',CP02:'Alcohol and tobacco',CP03:'Clothing',CP041:'Rent',CP043:'Home repairs',CP044:'Water and home services',CP045:'Electricity and gas',CP05:'Furnishings',CP06:'Health',CP071:'Vehicle purchases',CP072:'Fuel and vehicle running',CP073:'Transport services',CP08:'Communications',CP09:'Recreation',CP10:'Education',CP11:'Restaurants and hotels',CP12:'Other goods and services',EXCL:'Not consumption'};
 const MONTHS = Array.from({length:120},(_,i)=>`${2016+Math.floor(i/12)}-${String(i%12+1).padStart(2,'0')}`);
 const DEC22 = 83, N = 120;
+// Latest month: Eurostat HICP, COICOP 2018 (prc_hicp_minr), annual rate of change, September 2026. Old CP12 = new CP12 and CP13 weighted by 2026 item weights (42.69 and 74.79 per mille).
+const TODAY = {label:'September 2026', inf:[0.015,0.019,-0.008,0.016,0.022,0.031,0.101,0.002,0.009,0.001,0.151,0.059,0.032,0.000,0.034,0.027,0.0288], cp00:0.034, ea:0.038, frx:0.034};
 const state = {profile:'Aged 60 or over', hedge:'ea', year:2022, custom:null};
 
 // ---------- statistics ----------
@@ -287,16 +307,18 @@ const hedgeLabel = () => state.hedge==='ea' ? 'the euro area index (excl. tobacc
 function renderReview(){
   const r = compute();
   document.getElementById('hedgeName').textContent = state.hedge==='ea' ? 'Hedge index: euro area excl. tobacco' : 'Hedge index: France excl. tobacco';
-  document.getElementById('wHint').textContent = `Annual withdrawals: ${eur(r.W)}. Only spending is exposed to consumer prices.`;
+  document.getElementById('wHint').innerHTML = `Annual withdrawals: ${eur(r.W)}. Only spending is exposed to consumer prices.<br><span style="font-size:11.5px">*Default 4%: the common “4% rule” of thumb in retirement planning (Bengen, 1994). Edit it for each client.</span>`;
   const gap = r.scen - r.hedgeDec;
   const v = document.getElementById('verdict');
   const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+  const tNow = r.w.reduce((s,wi,i)=>s+wi*TODAY.inf[i],0), hNow = TODAY[state.hedge], gNow = tNow-hNow;
+  document.getElementById('today').innerHTML = `<span class="tag2">Today (${TODAY.label})</span>${cap(clientName())} faces <b>${pct(tNow)}</b> inflation a year, against <b>${pct(hNow)}</b> for the hedge index and ${pct(TODAY.cp00)} official French inflation: ${gNow>0?`<b style="color:var(--red)">${pts(gNow)} not covered</b>, ${eur(gNow*r.W)} a year on these withdrawals`:`covered with ${pts(-gNow)} to spare`}. Energy is up ${pct(TODAY.inf[6])} and fuels ${pct(TODAY.inf[10])} on a year earlier.`;
   if (gap > 0) {
-    v.innerHTML = `In a 2022-type shock, ${clientName()} sees costs rise <b>${pct(r.scen)}</b>. The hedge pays <b>${pct(r.hedgeDec)}</b>, leaving <b class="neg">${eur(r.uncovered)}</b> of the year’s spending uncovered.`;
+    v.innerHTML = `If a 2022-type shock hit today’s basket, ${clientName()} would see costs rise <b>${pct(r.scen)}</b>. The hedge would pay <b>${pct(r.hedgeDec)}</b>, leaving <b class="neg">${eur(r.uncovered)}</b> of the year’s spending uncovered.`;
   } else {
-    v.innerHTML = `In a 2022-type shock, ${clientName()} sees costs rise <b>${pct(r.scen)}</b>. The hedge pays <b class="pos">${pct(r.hedgeDec)}</b>: covered this time, by luck of the index.`;
+    v.innerHTML = `If a 2022-type shock hit today’s basket, ${clientName()} would see costs rise <b>${pct(r.scen)}</b>. The hedge would pay <b class="pos">${pct(r.hedgeDec)}</b>: covered this time, by luck of the index.`;
   }
-  document.getElementById('verdictSub').textContent = `Hedge: ${hedgeLabel()}. Official French inflation in the same month: ${pct(r.offDec)}. Shock scenario: each category moves as it did from December 2021 to December 2022.`;
+  document.getElementById('verdictSub').textContent = `Hedge: ${hedgeLabel()}. Official French inflation in the same month: ${pct(r.offDec)}. Shock scenario (a stress test of today’s basket, not a reconstruction of the past): each category moves as it did from December 2021 to December 2022.`;
   const m = [
     [pts(r.teShock), 'Basis risk in shocks', 'Tracking error against the hedge in shock months (calm-and-shock: '+pts(r.teAll)+')'],
     [r.hr.toFixed(2), 'Hedge ratio', 'Euros of this hedge that best track one euro of the client’s spending'],
@@ -324,7 +346,7 @@ function lineChart(r){
   s+=`<path d="${path(r.h)}" fill="none" stroke="var(--brass)" stroke-width="2"/>`;
   s+=`<path d="${path(r.p)}" fill="none" stroke="var(--harbour)" stroke-width="2.5"/>`;
   s+=`<line x1="${x(DEC22)}" x2="${x(DEC22)}" y1="${T}" y2="${H-B}" stroke="var(--ink)" stroke-dasharray="3 3" stroke-width="1"/><text x="${x(DEC22)+5}" y="${T+12}">Dec 2022: scenario month</text>`;
-  document.getElementById('lineChart').innerHTML = s+'</svg>';
+  const lc=document.getElementById('lineChart'); lc.innerHTML = s+'</svg>'; lc.scrollLeft = lc.scrollWidth;
 }
 function drivers(r){
   const y=state.year, off=D.official[String(y)], idx=MONTHS.map((m,i)=>m.startsWith(String(y))?i:-1).filter(i=>i>=0);
@@ -371,7 +393,7 @@ function renderFindings(){
   const better = f.r2.resid < r.resid;
   const sign = v => (v>=0?'+':'')+pts(v);
   const items = [
-    `<b>Shock scenario.</b> In a 2022-type year this basket rises ${pct(r.scen)}, the ${hedgeShort(state.hedge)} ${pct(r.hedgeDec)}: ${gap>0?`<span style="color:var(--red)">${eur(r.uncovered)} of spending left uncovered</span>`:`a surplus of ${eur(Math.abs(r.uncovered))}`} on ${eur(r.W)} of withdrawals.`,
+    `<b>Shock scenario.</b> If a 2022-type year hit today’s basket, it would rise ${pct(r.scen)}, the ${hedgeShort(state.hedge)} ${pct(r.hedgeDec)}: ${gap>0?`<span style="color:var(--red)">${eur(r.uncovered)} of spending left uncovered</span>`:`a surplus of ${eur(Math.abs(r.uncovered))}`} on ${eur(r.W)} of withdrawals.`,
     `<b>Basis risk is episodic.</b> The spread against the hedge is ${pts(r.teShock)} in shock months against ${pts(r.teAll)} over the whole period: the risk concentrates in the episodes that matter.`,
     `<b>Hedge choice.</b> With the ${hedgeShort(state.hedge)} the best hedge ratio is ${r.hr.toFixed(2)} and ${pts(r.resid)} of risk remains. With the ${hedgeShort(f.other)}: ratio ${f.r2.hr.toFixed(2)}, residual ${pts(f.r2.resid)}${better?` (<b>${Math.round((1-f.r2.resid/r.resid)*100)}% less</b>)`:''}.`,
     `<b>What drives the gap.</b> 2022: ${f.c22.map(o=>`${LABELS[o.c]} ${sign(o.v)}`).join(', ')}. 2023: ${f.c23.map(o=>`${LABELS[o.c]} ${sign(o.v)}`).join(', ')}.`,
@@ -379,6 +401,7 @@ function renderFindings(){
   ];
   document.getElementById('findings').innerHTML = items.map(t=>`<li>${t}</li>`).join('');
   document.getElementById('brief').hidden = true; document.getElementById('briefStatus').textContent = '';
+  syncBrief();
 }
 let briefCtl=null;
 async function writeBrief(){
@@ -388,7 +411,7 @@ async function writeBrief(){
   const data = {
     client: state.profile==='__custom' ? 'basket built from the client\'s classified transactions' : 'survey average basket: '+state.profile,
     hedge_index: hedgeShort(state.hedge)+' excluding tobacco', annual_withdrawals_eur: Math.round(r.W),
-    scenario_2022_basket_inflation_pct: +(r.scen*100).toFixed(2), scenario_hedge_index_pct: +(r.hedgeDec*100).toFixed(2), scenario_official_france_pct: +(r.offDec*100).toFixed(2),
+    scenario_2022_basket_inflation_pct: +(r.scen*100).toFixed(2), scenario_hedge_index_pct: +(r.hedgeDec*100).toFixed(2), today_month: TODAY.label, today_basket_inflation_pct: +(r.w.reduce((s,wi,i)=>s+wi*TODAY.inf[i],0)*100).toFixed(2), today_hedge_index_pct: +(TODAY[state.hedge]*100).toFixed(2), today_official_france_pct: +(TODAY.cp00*100).toFixed(2), scenario_official_france_pct: +(r.offDec*100).toFixed(2),
     scenario_uncovered_eur: Math.round(r.uncovered), tracking_error_shock_pt: +(r.teShock*100).toFixed(2), tracking_error_all_pt: +(r.teAll*100).toFixed(2),
     hedge_ratio: +r.hr.toFixed(2), residual_risk_pt: +(r.resid*100).toFixed(2),
     alternative_index: hedgeShort(f.other), alternative_hedge_ratio: +f.r2.hr.toFixed(2), alternative_residual_risk_pt: +(f.r2.resid*100).toFixed(2),
@@ -396,14 +419,14 @@ async function writeBrief(){
     drivers_2023_pt: f.c23.map(o=>({category:LABELS[o.c], contribution:+(o.v*100).toFixed(2)})),
     basket_vs_official: f.diffs.map(o=>({category:LABELS[o.c], client_share_pct:+(o.w*100).toFixed(1), difference_pt:+(o.d*100).toFixed(1)}))
   };
-  const prompt = `You are a senior analyst at a private bank in Monaco. Write a short briefing for a private banker preparing a client's annual review about inflation basis risk: the gap between the inflation of the client's own spending basket and the index their inflation hedge tracks. Use only the figures below; do not invent numbers. Plain, precise English for a non-specialist. Present options for the banker to discuss with the client, not personal investment advice.\nFigures (JSON): ${JSON.stringify(data)}\nReturn only JSON with this shape: {"headline": one sentence, "situation": 2-3 sentences, "drivers": 2-3 sentences, "options": [2-3 short options for the conversation, each one sentence], "watch": one sentence on what to monitor, "caveat": one sentence on the limits of the figures}.`;
+  const prompt = `You are a senior analyst at a private bank in Monaco. Write a short briefing for a private banker preparing a client's annual review about inflation basis risk: the gap between the inflation of the client's own spending basket and the index their inflation hedge tracks. Use only the figures below; do not invent numbers. Plain, precise English for a non-specialist. Present options for the banker to discuss with the client.\nFigures (JSON): ${JSON.stringify(data)}\nReturn only JSON with this shape: {"headline": one sentence, "situation": 2-3 sentences, "drivers": 2-3 sentences, "options": [2-3 short options for the conversation, each one sentence], "watch": one sentence on what to monitor, "caveat": one sentence on the limits of the figures}.`;
   try{
     const out = await sample.json(prompt, {signal: briefCtl.signal});
     const esc2 = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     document.getElementById('brief').innerHTML =
       `<p class="bh">${esc2(out.headline)}</p><h4>Situation</h4><p>${esc2(out.situation)}</p><h4>Drivers</h4><p>${esc2(out.drivers)}</p>` +
       `<h4>Options to discuss</h4><ul>${(Array.isArray(out.options)?out.options:[]).map(o=>`<li>${esc2(o)}</li>`).join('')}</ul>` +
-      `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)} Drafted by AI from the figures above; check before use. Not investment advice.</p>`;
+      `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)} Drafted by AI from the figures above; check before use.</p>`;
     document.getElementById('brief').hidden = false; document.getElementById('briefStatus').textContent = '';
   }catch(e){
     const msg={not_granted:'AI drafting was not allowed in this view. The key findings above still apply.',rate_limited:'Too many requests just now. Wait a minute, then try again.',aborted:'Stopped. Nothing was changed.'}[e&&e.code];
@@ -413,6 +436,65 @@ async function writeBrief(){
 }
 document.getElementById('runBrief').addEventListener('click', writeBrief);
 document.getElementById('stopBrief').addEventListener('click', ()=>briefCtl&&briefCtl.abort());
+// Briefings recorded from Claude (Anthropic) on 5 November 2026, for two scenarios, from the figures shown on the page
+const RECORDED_BRIEFS = {
+ s1:{headline:'Covered in a 2022-type year, but a travel-heavy basket makes this client more sensitive to inflation than the hedge index.',
+  situation:'In a 2022-type shock this basket rises 8.4%, against 9.3% for the euro-area index: a surplus of about €760 on €80,000 of withdrawals. With a hedge ratio of 1.11 the basket moves more than the index, and 1.22 points of risk remain even with the best hedge.',
+  drivers:'Transport services (31.9% of spending, against about 2% in the official basket) add 3.3 points to the gap in 2022. A lower share of household energy pulls it back by 1.15 points, and food (27.5% of spending) adds 0.79 points.',
+  options:['Discuss a hedge slightly above one-to-one, in line with the hedge ratio of 1.11.','Compare with the French index, which lowers residual risk by about a fifth (0.99 against 1.22 points).','Rebuild the basket with a full year of transactions: travel in a single period may overstate transport.'],
+  watch:'Air fares, ride-hailing and fuel prices, which make up almost half of this basket.',
+  caveat:'Based on a selection of real, anonymised transactions from a student (under 30), classified by AI; not yet a private banking client.'},
+ s2:{headline:'The hedge over-paid in a 2022-type year, but basis risk for this basket jumps in shocks: 1.80 points against 1.25 on average.',
+  situation:'In a 2022-type shock this basket rises 8.3%, against 9.3% for the euro-area index: a surplus of about €853 on €80,000 of withdrawals. In shock months the gap with the hedge widens to 1.80 points, and 1.24 points remain even with the best hedge ratio of 1.06.',
+  drivers:'Ride-hailing and other transport services are 45.2% of spending and add 4.76 points to the gap in 2022. The client spends nothing on household energy or fuel, which pulls the gap back by 1.53 and 1.19 points.',
+  options:['Explain that today’s surplus depends on not paying energy or fuel bills: a move to a home with its own bills would change the picture.','Compare with the French index, which lowers residual risk by about a sixth (1.03 against 1.24 points).','Re-run the analysis with a full year of spending before changing the hedge.'],
+  watch:'Transport and ride-hailing prices, the largest part of this basket.',
+  caveat:'Based on a selection of real, anonymised card transactions from a student (under 30), with amounts in US dollars, classified by AI.'},
+ s3:{headline:'Over-covered in a 2022-type year: this basket avoids the categories that drove the shock.',
+  situation:'In a 2022-type shock this basket rises 6.6%, well below the 9.3% of the euro-area index: a surplus of about €2,192 on €80,000 of withdrawals. The risk is still there in shocks (1.70 points against 1.18 on average), and switching to the French index would not reduce it.',
+  drivers:'Transport services (47.5% of spending) add 5.01 points to the gap in 2022, but the basket has almost no household energy or groceries, which pull the gap back by 1.53 and 0.92 points. Education is an unusually large 20.7% of spending.',
+  options:['Keep the current hedge: neither index reduces this client’s residual risk (about 1.17 points either way).','Review the basket when the client’s life changes (own home, energy bills, family), since that is when exposure would rise.','Rebuild the basket with a full year of transactions: one month of travel and study costs is not typical.'],
+  watch:'Transport prices, and any future spending on energy and food.',
+  caveat:'Based on a small selection (12 lines) of real, anonymised transactions from a student (under 30), classified by AI.'},
+ p60:{headline:'The euro-area hedge over-paid in 2022, but it tracks this basket loosely: a French index would remove two-thirds of the residual risk.',
+  situation:'In a 2022-type shock this basket’s prices rise 7.1%, while the euro-area index the hedge follows rises 9.3%, so on €80,000 of annual withdrawals the hedge would pay about €1,762 more than needed. That surplus is luck, not design: in shock months the basket and the index drift apart by 1.69 points on average, against 1.01 points over the whole period.',
+  drivers:'The gap with official French inflation comes mostly from fuel and vehicle running (−0.55 pt in 2022: the survey records less spending on fuel and cars for this group than the official basket does) and from food (+0.28 pt in 2022, +0.52 pt in 2023). Food is 20.4% of this basket, 3.8 points more than in the official basket.',
+  options:['Discuss replacing part of the euro-area protection (OAT€i) with a French-index hedge (OATi): the hedge ratio rises from 0.73 to 0.99 and residual risk falls from 0.73 to 0.24 points.','Review the “inflation + X%” target against the client’s own basket rather than the euro-area index.','Agree to run a 2022-type stress test on the client’s withdrawals at each annual review.'],
+  watch:'Food and energy prices in France: the two categories that move this basket away from the hedge in shocks.',
+  caveat:'The figures use a survey-average basket for households aged 60 or over (2015 weights), not a real client’s transactions.'},
+ a1:{headline:'Covered in a 2022-type year, but this basket moves more than the hedge: it needs about 1.17 euros of protection per euro of spending.',
+  situation:'In a 2022-type shock this client’s basket rises 9.0%, close to the 9.3% of the euro-area index, leaving a small surplus of about €253 on €80,000 of withdrawals. The basket reacts more strongly than the index (hedge ratio 1.17), so a one-to-one hedge under-protects it, and 1.07 points of risk remain even with the best hedge.',
+  drivers:'Transport services dominate: they are 31.4% of this basket against about 2% in the official one, and add 3.2 points to the gap in 2022. Restaurants and hotels (16.2% of spending) and food add smaller amounts.',
+  options:['Discuss sizing the inflation hedge above one-to-one for this client, as the hedge ratio of 1.17 suggests.','Review whether the euro-area index is the right reference: the French index leaves less residual risk (0.82 points against 1.07).','Re-run the analysis with a full year of transactions: travel spending in a single month may not be typical.'],
+  watch:'Transport and travel prices, which drive this client’s gap.',
+  caveat:'Based on one month of real, anonymised transactions (a selection), classified by AI; a full year would give a more reliable basket.'}
+};
+function briefKey(){
+  const W = (+document.getElementById('portfolio').value||0)*((+document.getElementById('rate').value||0)/100);
+  if (state.hedge!=='ea' || Math.abs(W-80000)>0.5) return '';
+  if (state.profile==='Aged 60 or over') return 'p60';
+  if (state.profile==='__custom' && RECORDED_BRIEFS[state.recKey]) return state.recKey;
+  return '';
+}
+function syncBrief(){
+  const b=document.getElementById('runBriefDemo'); if(!b) return;
+  if (sample) { b.hidden=true; if (document.getElementById('briefStatus').textContent.startsWith('Demo briefings')) document.getElementById('briefStatus').textContent=''; return; }
+  const k = briefKey(); b.hidden = !k;
+  if (!k) document.getElementById('briefStatus').textContent = 'Demo briefings are recorded with the euro area index and €80,000 of withdrawals for “Aged 60 or over” and for the four real examples (Students 1–3, Adult 1) after “Classify with AI (demo)” and “Use this basket”. Inside Claude, the briefing is written live for any client.';
+}
+function showBrief(out, demo){
+  const esc2 = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  document.getElementById('brief').innerHTML = (demo?'<p style="margin:0 0 10px"><span class="pill diff">Demo mode</span> <span style="color:var(--muted);font-size:13px">Briefing recorded from Claude (Anthropic) on 5 November 2026 for this case.</span></p>':'') +
+    `<p class="bh">${esc2(out.headline)}</p><h4>Situation</h4><p>${esc2(out.situation)}</p><h4>Drivers</h4><p>${esc2(out.drivers)}</p>` +
+    `<h4>Options to discuss</h4><ul>${(Array.isArray(out.options)?out.options:[]).map(o=>`<li>${esc2(o)}</li>`).join('')}</ul>` +
+    `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)} Drafted by AI from the figures above; check before use.</p>`;
+  document.getElementById('brief').hidden = false;
+}
+document.getElementById('runBriefDemo').addEventListener('click',()=>{
+  const k = briefKey(); if(!k) return; const b=document.getElementById('runBriefDemo'); b.disabled=true;
+  document.getElementById('brief').hidden=true; document.getElementById('briefStatus').textContent='Writing the briefing…';
+  setTimeout(()=>{ showBrief(RECORDED_BRIEFS[k], true); document.getElementById('briefStatus').textContent=''; b.disabled=false; }, 1400);
+});
 
 // ---------- controls ----------
 const sel = document.getElementById('profile');
@@ -558,7 +640,7 @@ const RECORDED = {
 function syncRec(){ const b=document.getElementById('runRec'); if(sample){ b.hidden=true; return; } const ok = !!exampleKey && document.getElementById('txInput').value===EXAMPLES[exampleKey].text; b.hidden = !ok; if(!ok){ clearInterval(demoTimer); b.disabled=false; document.getElementById('demoBadge').hidden=true; } }
 const VIDEO_URL = '';  // paste the link to the screen recording of the live AI here
 if (VIDEO_URL) { const v=document.getElementById('videoLink'); v.href=VIDEO_URL; v.hidden=false; }
-let demoTimer=null;
+let demoTimer=null, lastRecKey='';
 document.getElementById('runRec').addEventListener('click',()=>{
   if(!exampleKey) return; clearInterval(demoTimer);
   const btn=document.getElementById('runRec'); btn.disabled=true;
@@ -568,7 +650,7 @@ document.getElementById('runRec').addEventListener('click',()=>{
   let i=0; status(`Reading ${tx.length} lines…`);
   demoTimer=setInterval(()=>{
     if(i<tx.length && rec[i]){ tx[i].ai=rec[i][0]; tx[i].conf=rec[i][1]; tx[i].final=tx[i].ai; i++; status(`Classifying line ${i} of ${tx.length}…`); renderTx(); }
-    else { clearInterval(demoTimer); btn.disabled=false; renderTx(); status(`AI classified ${tx.filter(t=>t.ai).length} of ${tx.length} lines. Lines where it disagrees with the rules are highlighted.`); }
+    else { clearInterval(demoTimer); lastRecKey=exampleKey; btn.disabled=false; renderTx(); status(`AI classified ${tx.filter(t=>t.ai).length} of ${tx.length} lines. Lines where it disagrees with the rules are highlighted.`); }
   }, 140);
 });
 let tx = [];
@@ -595,20 +677,20 @@ function renderTx(){
   if(!tx.length){ box.innerHTML='<div class="empty">Paste transactions or load the example statement to start.</div>'; return; }
   const opts = c => Object.keys(LABELS).map(k=>`<option value="${k}" ${k===c?'selected':''}>${k} ${LABELS[k]}</option>`).join('');
   box.innerHTML = `<table><thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Rules</th><th>AI</th><th>Final category</th></tr></thead><tbody>${
-    tx.map((t,i)=>`<tr><td>${esc(t.date)}</td><td>${esc(t.desc)}</td><td class="num">${t.amount.toFixed(2)}</td>
-      <td>${t.rule?`<span class="pill">${t.rule}</span>`:'<span class="pill miss">no match</span>'}</td>
-      <td>${t.ai?`<span class="pill ${t.ai!==t.rule?'diff':''}">${t.ai}</span>${t.conf!=null?` <span style="color:var(--muted);font-size:12px">${Math.round(t.conf*100)}%</span>`:''}`:'<span style="color:var(--muted)">–</span>'}</td>
-      <td><select data-i="${i}" aria-label="Final category for line ${i+1}"><option value="">Choose</option>${opts(t.final)}</select></td></tr>`).join('')}</tbody></table>`;
+    tx.map((t,i)=>`<tr><td class="d" data-l="Date">${esc(t.date)}</td><td class="desc" data-l="">${esc(t.desc)}</td><td class="num" data-l="Amount">${t.amount.toFixed(2)}</td>
+      <td data-l="Rules">${t.rule?`<span class="pill">${t.rule}</span>`:'<span class="pill miss">no match</span>'}</td>
+      <td data-l="AI">${t.ai?`<span class="pill ${t.ai!==t.rule?'diff':''}">${t.ai}</span>${t.conf!=null?` <span style="color:var(--muted);font-size:12px">${Math.round(t.conf*100)}%</span>`:''}`:'<span style="color:var(--muted)">–</span>'}</td>
+      <td class="fin" data-l="Final"><select data-i="${i}" aria-label="Final category for line ${i+1}"><option value="">Choose</option>${opts(t.final)}</select></td></tr>`).join('')}</tbody></table>`;
   box.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{tx[+s.dataset.i].final=s.value||null; renderTx();}));
 }
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 document.getElementById('exSel').addEventListener('change',e=>{ const k=e.target.value; if(!k) return; const ex=EXAMPLES[k]; document.getElementById('txInput').value=ex.text; exampleKey=k; tx=[]; renderTx(); syncRec(); const n=ex.text.split('\n').length; status(`${ex.label} loaded: ${n} real card and bank lines from an anonymised statement (a selection of the statement; names, card and account numbers removed)${k==='s2'?'. Amounts in US dollars':''}. Classify it with rules, then with AI.`); });
 document.getElementById('txInput').addEventListener('input',()=>{ if(!exampleKey || document.getElementById('txInput').value!==EXAMPLES[exampleKey].text){ exampleKey=''; document.getElementById('exSel').value=''; } syncRec(); });
-document.getElementById('runRules').addEventListener('click',()=>{ tx=parse(document.getElementById('txInput').value); tx.forEach(t=>t.final=t.rule); renderTx(); status(tx.length?`Rules applied to ${tx.length} lines.`:'Nothing to classify yet: paste at least one transaction.'); });
+document.getElementById('runRules').addEventListener('click',()=>{ lastRecKey=''; tx=parse(document.getElementById('txInput').value); tx.forEach(t=>t.final=t.rule); renderTx(); status(tx.length?`Rules applied to ${tx.length} lines.`:'Nothing to classify yet: paste at least one transaction.'); });
 document.getElementById('useBasket').addEventListener('click',()=>{
   const sum={}; tx.forEach(t=>{ if(t.final && t.final!=='EXCL') sum[t.final]=(sum[t.final]||0)+t.amount; });
   const tot=Object.values(sum).reduce((a,b)=>a+b,0); if(!tot) return;
-  state.custom = D.codes.map(c=>(sum[c]||0)/tot); state.customLabel = exampleKey ? EXAMPLES[exampleKey].label+', real data' : 'Basket from transactions'; state.customWho = exampleKey ? EXAMPLES[exampleKey].who : ''; state.profile='__custom'; fillProfiles();
+  state.custom = D.codes.map(c=>(sum[c]||0)/tot); state.customLabel = exampleKey ? EXAMPLES[exampleKey].label+', real data' : 'Basket from transactions'; state.customWho = exampleKey ? EXAMPLES[exampleKey].who : ''; state.recKey = lastRecKey; state.profile='__custom'; fillProfiles();
   document.getElementById('profileHint').textContent='Built from the classified transactions: real spending, not a group average.';
   location.hash='review'; renderReview();
 });
@@ -616,7 +698,7 @@ document.getElementById('useBasket').addEventListener('click',()=>{
 // AI classification through the claude.ai runtime (hidden when unavailable)
 let sample=null, ctl=null;
 (async()=>{ try{ sample = window.claude && await window.claude.use('sample'); }catch(e){ sample=null; }
-  if(sample){ document.getElementById('runAI').hidden=false; document.getElementById('runBrief').hidden=false; }
+  if(sample){ document.getElementById('runAI').hidden=false; document.getElementById('runBrief').hidden=false; syncBrief(); }
   else { document.getElementById('aiNote').textContent='Live AI classification runs when this page is opened in Claude. On this public page, load a real example and press “Classify with AI (demo)” to see what the AI returns.'; }
   syncRec();
 })();
