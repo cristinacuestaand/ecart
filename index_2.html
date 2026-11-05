@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>écart: inflation basis risk, client by client</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --harbour:#0B3A4A; --harbour-soft:#E3ECEE; --brass:#A87B2F; --red:#C8102E; --red-soft:rgba(200,16,46,.16);
+  --glass:#3E8F84; --glass-soft:rgba(62,143,132,.18); --paper:#F5F7F6; --surface:#FFFFFF; --ink:#13222B;
+  --muted:#56676F; --line:#D8DFE1; --band:rgba(168,123,47,.10); --focus:#A87B2F;
+  --serif:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans:"Public Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --harbour:#8CC6D4; --harbour-soft:#17303A; --brass:#D6A957; --red:#FF5C70; --red-soft:rgba(255,92,112,.20);
+    --glass:#6CC3B5; --glass-soft:rgba(108,195,181,.20); --paper:#0D181D; --surface:#13232A; --ink:#E6EDEF;
+    --muted:#98A9B0; --line:#29414B; --band:rgba(214,169,87,.10); --focus:#D6A957; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --harbour:#8CC6D4; --harbour-soft:#17303A; --brass:#D6A957; --red:#FF5C70; --red-soft:rgba(255,92,112,.20);
+  --glass:#6CC3B5; --glass-soft:rgba(108,195,181,.20); --paper:#0D181D; --surface:#13232A; --ink:#E6EDEF;
+  --muted:#98A9B0; --line:#29414B; --band:rgba(214,169,87,.10); --focus:#D6A957; color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.55 var(--sans);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+a{color:var(--harbour)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:3px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+header.top{border-bottom:1px solid var(--line);background:var(--surface)}
+header.top .wrap{display:flex;align-items:center;gap:16px;min-height:68px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand svg{width:34px;height:34px;flex:none}
+.word{font:600 28px/1 var(--serif);letter-spacing:-.01em}
+.tag{color:var(--muted);font-size:14px;margin-left:4px}
+.tabs{margin-left:auto;display:flex;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}
+.tabs button{border:0;background:transparent;color:var(--muted);font:600 14px var(--sans);padding:8px 16px;border-radius:999px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--harbour);color:var(--surface)}
+main{padding:28px 0 48px}
+.layout{display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:start}
+aside.file{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px}
+aside.file h2{font:600 18px/1.3 var(--serif);margin:0 0 14px}
+.field{margin-bottom:16px}
+.field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px}
+.field .hint{color:var(--muted);font-size:12.5px;margin-top:4px}
+select,input[type=number],textarea{width:100%;font:15px var(--sans);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 6px;font:500 13px/1.25 var(--sans);cursor:pointer;text-align:left}
+.seg button[aria-pressed="true"]{border-color:var(--harbour);box-shadow:inset 0 0 0 1px var(--harbour);background:var(--harbour-soft)}
+.today{margin:0 0 14px;padding:10px 14px;border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:8px;background:var(--surface);font-size:15px;line-height:1.45;max-width:78ch}
+.today .tag2{display:inline-block;font-weight:700;color:var(--brass);margin-right:6px}
+.verdict{font:400 clamp(24px,2.7vw,34px)/1.25 var(--serif);margin:0 0 6px;max-width:30ch;letter-spacing:-.005em}
+.verdict b{font-weight:700}
+.verdict .neg{color:var(--red)} .verdict .pos{color:var(--glass)}
+.sub{color:var(--muted);margin:0 0 22px;max-width:70ch}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);border-top:2px solid var(--ink);border-bottom:1px solid var(--line);margin-bottom:28px}
+.metric{padding:14px 16px 16px;border-left:1px solid var(--line)}
+.metric:first-child{border-left:0;padding-left:0}
+.metric .v{font:600 30px/1.1 var(--serif)}
+.metric .k{font-weight:600;font-size:13.5px;margin-top:4px}
+.metric .c{color:var(--muted);font-size:12.5px;line-height:1.4}
+section.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 20px 14px;margin-bottom:22px}
+section.panel h3{font:600 19px/1.3 var(--serif);margin:0 0 4px}
+section.panel p.d{color:var(--muted);margin:0 0 12px;font-size:14px;max-width:72ch}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+.legend i.sw{height:10px;width:12px;border-radius:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.chart{width:100%;overflow-x:auto}
+svg text{fill:var(--muted);font:12px var(--sans)}
+.yearpick{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle}
+.yearpick button{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:6px;padding:2px 10px;font:600 12px var(--sans);cursor:pointer}
+.yearpick button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.findings{margin:0 0 6px;padding-left:22px;display:grid;gap:10px;font-size:14.5px;line-height:1.5}
+.brief{margin-top:16px;border-top:1px solid var(--line);padding-top:14px;font-size:14.5px;line-height:1.55;max-width:78ch}
+.brief .bh{font:600 20px/1.3 var(--serif);margin:0 0 8px}
+.brief h4{font:600 13px var(--sans);color:var(--muted);margin:14px 0 4px}
+.brief p{margin:0} .brief ul{margin:0;padding-left:20px}
+.brief .cav{color:var(--muted);font-size:13px;margin-top:12px}
+.foot{color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:16px;margin-top:10px;max-width:90ch}
+/* transactions view */
+.tx-top{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:start}
+textarea{min-height:220px;font:13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;resize:vertical}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{border:1px solid var(--harbour);background:var(--harbour);color:var(--surface);font:600 14px var(--sans);padding:9px 16px;border-radius:8px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--harbour)}
+.btn:disabled{opacity:.5;cursor:default}
+.status{font-size:13.5px;color:var(--muted);margin-top:10px;min-height:1.4em}
+.score{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:2px solid var(--ink);border-bottom:1px solid var(--line)}
+.score>div{padding:12px 14px;border-left:1px solid var(--line)} .score>div:first-child{border-left:0;padding-left:0}
+.score .v{font:600 26px/1.1 var(--serif)} .score .k{font-size:12.5px;color:var(--muted)}
+.tbl{width:100%;overflow-x:auto;margin-top:14px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:720px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-weight:600;font-size:12.5px;color:var(--muted)}
+td.num{text-align:right}
+td select{padding:5px 6px;font-size:13px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--harbour-soft);color:var(--harbour)}
+.pill.miss{background:var(--red-soft);color:var(--red)}
+.pill.diff{background:var(--band);color:var(--brass)}
+.empty{color:var(--muted);padding:28px 0;text-align:center}
+[hidden]{display:none!important}
+td.d{white-space:nowrap}
+.layout>*,.two>*,.tx-top>*{min-width:0}
+@media (max-width:640px){
+  .tbl table,.tbl tbody,.tbl tr,.tbl td{display:block;min-width:0;width:100%}
+  .tbl table{min-width:0} .tbl thead{display:none}
+  .tbl tr{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .tbl td{border:0;padding:0;width:auto}
+  .tbl td.desc{grid-column:1 / -1;order:-1;font-weight:600}
+  .tbl td.d{color:var(--muted);font-size:12.5px}
+  .tbl td.num{text-align:right;grid-column:3}
+  .tbl td[data-l="Rules"]::before,.tbl td[data-l="AI"]::before{content:attr(data-l) " ";color:var(--muted);font-size:12px}
+  .tbl td.fin{grid-column:1 / -1}
+  #lineChart svg{min-width:640px} #drivers svg,#basket svg{min-width:400px}
+  .score .v{font-size:22px}
+}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr} .layout>aside{order:2} .two,.tx-top{grid-template-columns:1fr} .tag{display:none}
+  .strip{grid-template-columns:1fr 1fr} .metric:nth-child(3){border-left:0;padding-left:0}
+  .tabs{margin-left:0}
+}
+#printArea{display:none}
+@media print{ body.printing > *:not(main){display:none!important} body.printing main .wrap > *{display:none!important} body.printing #view-review{display:block!important} body.printing #view-review .layout{display:block} body.printing #view-review .layout > *{display:none!important} body.printing #view-review .layout > div:last-child{display:block!important} body.printing #view-review .layout > div:last-child > *{display:none!important} body.printing #view-review .layout > div:last-child > #analysisPanel{display:block!important;border:0;padding:0} body.printing #analysisPanel > *{display:none!important} body.printing #printArea{display:block!important} body{background:#fff} }
+@media (prefers-reduced-motion:no-preference){ .verdict{transition:opacity .25s} }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#review" aria-label="écart home">
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <rect x="1" y="1" width="38" height="38" rx="10" fill="var(--harbour)"/>
+      <path d="M9 29 L31 21" stroke="var(--brass)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M9 29 L31 11" stroke="var(--surface)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M31 11.6 L31 20.4 L23 23.6 Z" fill="#E0314B" opacity=".95"/>
+    </svg>
+    <span class="word">écart</span>
+  </a>
+  <span class="tag">Inflation basis risk, client by client</span>
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" id="t-review" aria-selected="true" data-view="review">Client review</button>
+    <button role="tab" id="t-tx" aria-selected="false" data-view="transactions">Classify transactions</button>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+<div id="view-review">
+  <div class="layout">
+    <aside class="file" aria-label="Client file">
+      <h2>Client file</h2>
+      <div class="field">
+        <label for="profile">Spending basket</label>
+        <select id="profile"></select>
+        <div class="hint" id="profileHint">Survey average for France (Eurostat, 2015). Replace it with a basket built from the client’s transactions.</div>
+      </div>
+      <div class="field">
+        <label>Inflation hedge held</label>
+        <div class="seg" id="hedgeSeg">
+          <button type="button" data-h="ea" aria-pressed="true">Euro area index<br><span style="color:var(--muted);font-size:12px">OAT€i, inflation funds</span></button>
+          <button type="button" data-h="frx" aria-pressed="false">French index<br><span style="color:var(--muted);font-size:12px">OATi (proxy)</span></button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="portfolio">Portfolio (EUR)</label>
+        <input id="portfolio" type="number" min="0" step="100000" value="2000000">
+      </div>
+      <div class="field">
+        <label for="rate">Withdrawal rate (% a year)*</label>
+        <input id="rate" type="number" min="0" max="20" step="0.5" value="4">
+        <div class="hint" id="wHint"></div>
+      </div>
+    </aside>
+
+    <div>
+      <p class="today" id="today"></p>
+      <p class="verdict" id="verdict" aria-live="polite"></p>
+      <p class="sub" id="verdictSub"></p>
+      <div class="strip" id="strip"></div>
+
+      <section class="panel" id="analysisPanel">
+        <h3>Analysis for the client review</h3>
+        <p class="d">Key findings are calculated from the data on this page. The written briefing is drafted by AI from the same figures, and can be saved as a PDF.</p>
+        <ol class="findings" id="findings"></ol>
+        <div class="btns"><button class="btn" type="button" id="runBriefDemo" hidden>Write the banker’s briefing (demo)</button><button class="btn" type="button" id="runBrief" hidden>Write the banker’s briefing with AI</button><button class="btn ghost" type="button" id="stopBrief" hidden>Stop</button></div>
+        <div class="status" id="briefStatus"></div>
+        <div class="brief" id="brief" hidden></div>
+        <div class="btns" id="briefDl" hidden><button class="btn" type="button" id="pdfBrief">Save briefing as PDF</button><button class="btn ghost" type="button" id="htmlBrief">Download (.html)</button></div>
+        <div id="printArea" aria-hidden="true"></div>
+      </section>
+
+      <section class="panel">
+        <h3>Client inflation against the hedge index, 2016–2025, as if today’s basket had been held</h3>
+        <p class="d">Year-on-year inflation, monthly. Red: the client’s costs rise faster than the hedge pays. Green: the hedge pays more. Shaded bands are shock months (official French inflation above 3%).</p>
+        <div class="legend">
+          <span><i style="background:var(--harbour)"></i>Client basket</span>
+          <span><i style="background:var(--brass)"></i><span id="hedgeName">Hedge index</span></span>
+          <span><i style="background:var(--muted);height:1px"></i>Official French inflation</span>
+          <span><i class="sw" style="background:var(--red-soft);outline:1px solid var(--red)"></i>Uncovered</span>
+          <span><i class="sw" style="background:var(--glass-soft);outline:1px solid var(--glass)"></i>Over-covered</span>
+        </div>
+        <div class="chart" id="lineChart"></div>
+      </section>
+
+      <div class="two">
+        <section class="panel">
+          <h3>What drives the gap
+            <span class="yearpick" id="yearPick"><button type="button" data-y="shock" aria-pressed="false">Shock 2021–24</button><button type="button" data-y="2022" aria-pressed="true">2022</button><button type="button" data-y="2023" aria-pressed="false">2023</button><button type="button" data-y="today" aria-pressed="false">Today</button></span>
+          </h3>
+          <p class="d">Contribution of each category to the gap with official inflation: (client weight − official weight) × category inflation. Shock 2021–24: average of the 29 shock months (October 2021 to February 2024). Today: September 2026 prices with 2025 official weights.</p>
+          <div class="chart" id="drivers"></div>
+        </section>
+        <section class="panel">
+          <h3>Client basket against the official basket</h3>
+          <p class="d">Share of spending by category. The bigger the difference, the less the official index describes this client.</p>
+          <div class="chart" id="basket"></div>
+        </section>
+      </div>
+      <p class="foot">Prototype by Group C, International University of Monaco (Statistics and Financial Data Analysis). Prices: Eurostat HICP for France (prc_hicp_midx, 2016–2025; latest month from prc_hicp_minr, COICOP 2018, mapped to the same 17 categories) and HICP excluding tobacco for the euro area and France. Baskets: Eurostat Household Budget Survey 2015 (hbs_str_t225, hbs_str_t223), imputed rent excluded. The French index stands in for the INSEE index used by OATi. Survey profiles are group averages, not real clients.</p>
+    </div>
+  </div>
+</div>
+
+<div id="view-tx" hidden>
+  <div class="tx-top">
+    <section class="panel">
+      <h3>Paste the client’s transactions</h3>
+      <p class="d">One per line: date, description, amount. Bank exports work as they are. Remove names, IBANs and card numbers first.</p>
+      <label for="txInput" class="visually-hidden" style="position:absolute;left:-9999px">Transactions</label>
+      <textarea id="txInput" spellcheck="false" placeholder="2026-09-02; CB CARREFOUR MARKET MONACO; 86.40"></textarea>
+      <div class="btns">
+        <label for="exSel" style="position:absolute;left:-9999px">Load a real example</label><select id="exSel" style="width:auto;min-width:300px"><option value="">Load a real example…</option><option value="s1">Student 1 (under 30)</option><option value="s2">Student 2 (under 30, US dollars)</option><option value="s3">Student 3 (under 30)</option><option value="a1">Adult 1 (aged 30 to 44)</option></select>
+        <button class="btn ghost" type="button" id="runRules">Classify with rules only</button>
+        <button class="btn" type="button" id="runAI" hidden>Classify with AI</button>
+        <button class="btn" type="button" id="runRec" hidden>Classify with AI (demo)</button>
+        <a class="btn ghost" id="videoLink" href="#" target="_blank" rel="noopener" hidden style="text-decoration:none">Watch the live AI</a>
+        <button class="btn ghost" type="button" id="stopAI" hidden>Stop</button>
+      </div>
+      <div class="status" id="txStatus"></div>
+      <div class="status" id="demoBadge" hidden><span class="pill diff">Demo mode</span> AI output recorded from Claude (Anthropic) on 5 November 2026 for this example. The live version, inside Claude, classifies any statement.</div>
+    </section>
+    <section class="panel">
+      <h3>Why a spreadsheet is not enough</h3>
+      <p class="d">Rules match keywords; AI reads the description the way a banker would. The comparison below is the argument.</p>
+      <div class="score" id="txScore">
+        <div><div class="v" id="sLines">0</div><div class="k">transactions</div></div>
+        <div><div class="v" id="sMiss">–</div><div class="k">the rules cannot classify</div></div>
+        <div><div class="v" id="sDiff">–</div><div class="k">where rules and AI disagree</div></div>
+      </div>
+      <div class="btns"><button class="btn" type="button" id="useBasket" disabled>Use this basket in the client review</button></div>
+      <div class="status" id="aiNote"></div>
+    </section>
+  </div>
+  <section class="panel">
+    <h3>Classified transactions</h3>
+    <p class="d">The final category is the AI answer when there is one, otherwise the rule. Change any line before using the basket.</p>
+    <div class="tbl" id="txTable"><div class="empty">Paste transactions or load the example statement to start.</div></div>
+    <div id="exportBox" hidden style="margin-top:16px">
+      <h3>AI answers to paste into the workbook</h3>
+      <p class="d">One code per line, in the same order as the pasted transactions. Select all, copy, and paste into column F of the member’s Pilot sheet, starting at row 6.</p>
+      <label for="exportCodes" style="position:absolute;left:-9999px">AI codes</label>
+      <textarea id="exportCodes" readonly style="min-height:120px"></textarea>
+    </div>
+  </section>
+</div>
+</div></main>
+
+<script>
+const D = {"codes":["CP01","CP02","CP03","CP041","CP043","CP044","CP045","CP05","CP06","CP071","CP072","CP073","CP08","CP09","CP10","CP11","CP12"],"inf":[[0.003215,0.000902,0.003801,0.003401,0.009952,0.005289,0.012649,0.015682,0.004098,-0.001988,0.002292,0.0074,0.013719,0.01693,0.008171,0.007675,0.004139,0.008239,0.007435,0.006334,0.011347,0.016733,0.015611,0.014294,0.012644,0.008374,0.015716,0.017015,0.018744,0.020085,0.020665,0.022915,0.029918,0.023315,0.020168,0.02613,0.028583,0.030871,0.024037,0.024122,0.021771,0.024901,0.029792,0.032112,0.020067,0.016849,0.020537,0.020601,0.019253,0.017722,0.020051,0.041219,0.039314,0.028157,0.011048,0.008291,0.008806,0.016005,0.021723,0.01112,0.010235,0.008567,0.009689,-0.005382,-0.004898,-0.002839,0.009168,0.01395,0.010865,0.006764,0.00405,0.014233,0.016948,0.023174,0.032202,0.041911,0.046035,0.062735,0.07249,0.083736,0.1061,0.12867,0.129801,0.128577,0.141473,0.157733,0.168857,0.157116,0.149281,0.142697,0.131674,0.116025,0.09941,0.079834,0.078864,0.074203,0.058002,0.035464,0.016136,0.011639,0.012739,0.00832,0.005443,0.005123,0.004608,0.007325,0.001805,0.0,0.0009,0.003387,0.006472,0.01346,0.014226,0.014928,0.017746,0.017689,0.018949,0.014094,0.014939,0.018416],[0.005415,0.005412,0.003603,0.004101,0.0042,0.0049,0.004698,0.004995,0.005198,0.004996,0.004193,0.003495,0.003191,0.007377,0.017551,0.017034,0.016731,0.014826,0.015619,0.014511,0.014916,0.014912,0.026245,0.033333,0.032806,0.028105,0.085653,0.085896,0.084141,0.085204,0.087864,0.089938,0.090633,0.090998,0.080209,0.074242,0.078833,0.08355,0.055786,0.055831,0.060354,0.060535,0.058527,0.057348,0.056868,0.056204,0.088602,0.088383,0.085296,0.082526,0.077291,0.072869,0.073023,0.075993,0.076387,0.076851,0.075315,0.073954,0.069281,0.067864,0.071276,0.070245,0.034524,0.038538,0.035417,0.031275,0.029319,0.029604,0.027747,0.029049,0.003467,0.003856,0.000691,0.000997,0.003299,0.004984,0.007516,0.010134,0.014203,0.017175,0.020614,0.024537,0.02595,0.028119,0.032899,0.035389,0.078147,0.089792,0.091954,0.092346,0.090689,0.087592,0.085462,0.081907,0.079249,0.076969,0.108397,0.113635,0.069504,0.056143,0.052353,0.049819,0.047751,0.047824,0.047768,0.045729,0.046734,0.04642,0.031415,0.024846,0.02248,0.021807,0.022721,0.022866,0.022721,0.022027,0.02306,0.023225,0.022854,0.022678],[-0.004513,0.008982,0.002121,0.0,0.002097,0.005152,0.007678,-0.002167,0.000385,0.002688,0.002109,-9.5e-05,0.048963,-0.0281,-0.006062,-0.000575,-0.00428,0.016828,0.008853,-0.012204,-0.005958,-0.003638,-0.002104,-0.000285,0.004862,0.011035,-0.004066,-0.005277,-0.000955,-0.002473,0.008219,0.007853,0.0058,0.00048,-0.000671,-0.002663,0.004839,0.007859,-0.002819,-0.001157,-0.006597,-0.008486,0.003966,-0.012362,-0.010668,0.002017,-0.001247,-0.00267,-0.002033,0.020793,0.00117,-0.008691,-0.025503,-0.038273,0.097772,-0.015883,-0.011463,-0.008818,-0.01671,-0.031268,0.036457,-0.02822,-0.025022,-0.021722,-0.001284,0.028697,-0.067973,0.04457,0.007567,0.000967,0.016115,0.032178,-0.005276,0.061135,0.034851,0.042716,0.041234,0.005929,0.006221,0.027934,0.026139,0.028886,0.028835,0.026585,0.025481,0.024897,0.029818,0.027979,0.02716,0.048604,0.03528,0.022895,0.025853,0.020469,0.018778,0.012576,0.00426,0.008633,0.00431,0.007246,0.006657,0.007188,0.007722,0.009829,-0.001204,0.001932,0.000183,-0.003312,0.017572,0.016421,0.006065,0.002213,0.001102,0.002928,0.019105,0.013877,0.00705,0.003306,0.003117,0.004246],[0.004613,0.004207,0.004006,0.003503,0.003401,0.0033,0.0034,0.002497,0.002396,0.002396,0.002696,0.002596,0.001997,0.001496,0.001696,0.002194,0.001894,0.001994,0.001694,0.001694,0.001594,0.002092,0.002091,0.002191,0.003387,0.004582,0.004581,0.004379,0.004975,-0.006665,-0.007163,-0.008454,-0.008354,-0.007654,-0.007751,-0.007452,-0.007447,-0.003867,-0.003569,-0.002874,-0.003663,0.008212,0.00942,0.011034,0.011333,0.010818,0.010616,0.010612,0.010604,0.005474,0.005372,0.004174,0.00318,0.003079,0.00278,0.002381,0.002281,0.00218,0.002477,0.002377,0.002079,0.008711,0.00851,0.009401,0.009312,0.00921,0.009504,0.010492,0.01029,0.00969,0.007315,0.007511,0.007211,0.003827,0.004023,0.003922,0.005889,0.006182,0.006374,0.006269,0.006953,0.007933,0.010991,0.011476,0.012162,0.020921,0.021499,0.021484,0.021953,0.022138,0.02251,0.022583,0.022564,0.022736,0.022035,0.02211,0.022965,0.021641,0.022769,0.023231,0.023964,0.024234,0.02354,0.023322,0.023397,0.023656,0.024599,0.023529,0.023776,0.025026,0.023665,0.023732,0.022284,0.021984,0.021974,0.02186,0.021468,0.020974,0.025491,0.026047],[0.008138,0.007921,0.010317,0.012223,0.011705,0.010797,0.011893,0.009186,0.010976,0.011774,0.011775,0.01287,0.015946,0.014821,0.01269,0.013659,0.012954,0.014638,0.014123,0.016325,0.015199,0.015089,0.016866,0.016351,0.017657,0.019604,0.019285,0.018651,0.019036,0.018228,0.017433,0.018594,0.020416,0.020888,0.021726,0.021516,0.017737,0.017304,0.018152,0.019363,0.019829,0.01972,0.021442,0.019784,0.016864,0.021983,0.019366,0.018975,0.018564,0.015971,0.015093,0.011755,0.011554,0.013706,0.016493,0.017245,0.017052,0.01136,0.01369,0.014246,0.020179,0.02037,0.020537,0.021935,0.0221,0.022134,0.020835,0.023217,0.026071,0.027714,0.029858,0.030111,0.03172,0.038742,0.044892,0.044657,0.05015,0.052822,0.054366,0.055015,0.056832,0.059846,0.058787,0.060957,0.06573,0.065555,0.062222,0.065819,0.059953,0.055336,0.053448,0.049671,0.047235,0.046407,0.044654,0.042335,0.032247,0.027755,0.026827,0.024751,0.025057,0.025116,0.024311,0.025693,0.023607,0.0227,0.021937,0.022403,0.025699,0.024441,0.025008,0.024153,0.023648,0.024262,0.023416,0.023385,0.024013,0.021011,0.021387,0.020966],[0.011857,0.010824,0.011736,0.010417,0.011221,0.008996,0.008392,0.008289,0.008288,0.008682,0.008682,0.010646,0.011023,0.012691,0.01507,0.014572,0.01397,0.013868,0.014763,0.014857,0.015052,0.014741,0.01484,0.01457,0.015814,0.013902,0.012014,0.012799,0.013094,0.013092,0.012986,0.013176,0.012976,0.012382,0.012381,0.006598,0.005221,0.00338,0.002799,0.00328,0.003086,0.002797,0.002217,0.001927,0.001445,0.001348,0.001348,0.007326,0.007503,0.008276,0.009913,0.010288,0.009808,0.010194,0.010002,0.010191,0.011156,0.011541,0.01202,0.008804,0.009261,0.008399,0.007815,0.006282,0.007903,0.008283,0.00857,0.009993,0.009606,0.01293,0.012828,0.011098,0.013528,0.016848,0.017494,0.018822,0.021256,0.020772,0.020959,0.022993,0.023457,0.02966,0.028333,0.02852,0.030521,0.043936,0.046375,0.048088,0.049491,0.050967,0.052062,0.048452,0.050166,0.05588,0.05775,0.057922,0.060049,0.053054,0.052847,0.05279,0.048215,0.046559,0.046849,0.047092,0.045403,0.051023,0.052355,0.051906,0.044173,0.038019,0.036022,0.036598,0.037925,0.039946,0.039211,0.038681,0.03773,0.03146,0.029096,0.022869],[-0.021782,-0.034534,-0.030873,-0.039272,-0.022933,-0.013008,-0.008081,-0.011304,-0.009461,-0.007525,0.002717,0.021622,0.043016,0.048813,0.054523,0.059514,0.038065,0.02717,0.018432,0.029502,0.028653,0.032653,0.033725,0.029312,0.034643,0.039351,0.028369,0.032264,0.052104,0.062969,0.09509,0.083887,0.085934,0.092022,0.098359,0.080896,0.039205,0.041507,0.052537,0.046696,0.039899,0.057289,0.024744,0.031836,0.025377,0.008606,-0.00168,0.012682,0.026986,0.017593,-0.003578,-0.01682,-0.029562,-0.049618,-0.037334,-0.033691,-0.034685,-0.027998,-0.026388,-0.022401,-0.016522,0.005733,0.03995,0.052054,0.068981,0.077527,0.10311,0.10634,0.127366,0.174012,0.192451,0.186739,0.193191,0.202333,0.243698,0.270435,0.27605,0.284967,0.264977,0.238099,0.245028,0.252901,0.233544,0.185785,0.175691,0.181268,0.132991,0.106229,0.082881,0.062667,0.021624,0.099136,0.087862,0.040221,0.036913,0.075902,0.080451,0.093244,0.070637,0.068556,0.080988,0.08472,0.144007,0.075081,0.058077,0.060001,0.056947,0.06304,0.059781,-0.063263,-0.051614,-0.045339,-0.056944,-0.064266,-0.078036,-0.076356,-0.076503,-0.086937,-0.083667,-0.092764],[0.003132,0.003218,0.003096,-0.000499,-0.001293,-0.000697,0.000506,-0.004298,-0.003192,-0.004888,-0.003292,-0.006853,-0.00423,-0.009424,-0.00468,-0.002496,-0.004282,-0.005381,-0.000101,0.000602,0.001601,0.001704,0.0002,-0.0008,0.004552,0.00334,0.003301,0.003003,0.0004,0.005209,0.0,-0.001705,0.0002,0.002202,0.005004,0.001902,0.002719,-0.000202,0.000199,-0.001098,0.003199,0.002093,0.002731,0.00211,0.002398,0.002896,-0.0001,0.002098,-0.001707,0.008979,-0.001296,0.004296,0.006477,0.005072,0.020478,0.008524,0.006677,0.006173,0.006572,0.00319,0.017503,0.007999,0.015073,0.012534,0.00901,0.013457,0.00089,0.017799,0.015048,0.017712,0.021666,0.023251,0.019674,0.033727,0.035303,0.040083,0.05181,0.052529,0.059852,0.069852,0.072272,0.078075,0.078919,0.089823,0.093271,0.094137,0.09071,0.088883,0.078832,0.073655,0.064486,0.052689,0.052119,0.040765,0.033208,0.026998,0.013391,0.005438,0.004267,-0.002082,-0.002767,-0.003715,-0.004027,-0.002255,-0.004582,-0.003293,-8.7e-05,-0.004772,-0.001663,-0.002442,-0.001908,0.000261,-0.002862,0.000954,-0.003076,0.0,-0.00495,-0.002087,-0.006776,-0.00279],[-0.013196,-0.010798,-0.006085,-0.007765,-0.007577,-0.005795,0.001505,-0.005056,-0.004329,-0.005104,-0.000805,-0.004501,-0.002514,0.0003,0.003814,0.0,0.002612,0.006331,0.002304,0.002744,0.005359,0.005733,0.003624,0.00422,0.007459,0.003905,0.0011,0.003913,0.001403,-0.0003,0.001499,0.003344,0.003018,-0.0028,0.0001,-0.0008,-0.001801,-0.003092,-0.005493,-0.003698,-0.009905,-0.008191,-0.01008,0.001818,-0.002206,-0.005015,-0.004714,-0.000601,-0.006715,-0.005402,-0.001205,0.002207,0.000303,-0.000302,0.005444,-0.003529,-0.005025,0.005241,0.005845,0.003808,-0.005651,-0.00684,-0.008547,-0.012211,-0.002728,-0.002418,-0.006818,-0.006375,-0.007879,-0.010729,-0.003907,-0.004791,0.001725,0.007292,0.010243,0.014591,0.009319,0.008079,0.005553,0.00224,0.010588,0.016217,0.007443,0.00662,0.01165,0.006033,0.007027,0.00779,0.01114,0.01112,0.014558,0.015749,0.012996,0.016856,0.023562,0.025807,0.019327,0.023786,0.02273,0.031315,0.062928,0.074309,0.071549,0.06822,0.066435,0.062874,0.055306,0.052841,0.056391,0.059157,0.054001,0.054483,0.011579,0.002121,0.001939,0.001686,0.002984,-0.001569,0.001664,-0.000185],[0.013446,0.010111,0.008494,0.002107,-0.003709,-0.006875,-0.011325,0.0,0.002815,-0.012809,-0.008687,-0.007888,-0.007228,-0.006244,-0.007035,0.005608,0.010967,0.008327,0.010852,0.011462,0.009123,0.014484,0.01672,0.017411,0.010571,0.011968,0.011775,0.009958,0.015028,0.01184,0.015805,0.018091,0.012617,0.014376,0.014068,0.014937,0.012237,0.009559,0.009271,0.009071,0.008824,0.011013,-0.000881,-0.004491,0.005003,0.00391,0.002931,0.011404,0.010529,0.011031,0.005179,0.00557,0.002138,0.003112,0.000784,0.002844,0.003709,0.00185,0.004091,-0.006071,-0.001544,-0.003476,0.003111,0.003012,0.000582,0.001842,0.018497,0.01066,0.012838,0.012051,0.012321,0.011538,0.021645,0.028195,0.033631,0.040302,0.047979,0.050615,0.050159,0.06348,0.057423,0.065489,0.069669,0.073613,0.06999,0.065963,0.065448,0.058391,0.046245,0.04136,0.03111,0.027662,0.025881,0.015411,0.009765,0.003393,-0.005392,-0.004155,-0.002992,-0.00088,0.002298,0.007165,0.009673,0.007083,0.004337,0.008077,0.010824,0.012279,0.02364,0.01953,0.012358,0.010656,0.011113,0.006236,0.005185,0.005275,0.009078,0.003874,0.000702,0.000703],[-0.016697,-0.039292,-0.042954,-0.038632,-0.031574,-0.012547,-0.017418,-0.013527,0.003647,0.014718,0.022281,0.031714,0.075689,0.084192,0.068304,0.062122,0.037045,0.011912,0.015724,0.037278,0.039871,0.03471,0.040804,0.039266,0.040331,0.038779,0.042882,0.052505,0.077185,0.090642,0.091895,0.086075,0.083285,0.090004,0.062918,0.044938,0.009993,0.021253,0.032969,0.03237,0.022499,0.004137,0.00605,0.002434,-0.000806,-0.007273,0.008636,0.029492,0.038018,0.011763,-0.0234,-0.059336,-0.072906,-0.04631,-0.032852,-0.030941,-0.038203,-0.042259,-0.042544,-0.03867,-0.029477,-0.003309,0.036629,0.064778,0.077876,0.072039,0.067193,0.066642,0.076084,0.097948,0.102841,0.085063,0.094026,0.106326,0.157988,0.12265,0.139636,0.181531,0.154535,0.119561,0.072784,0.082158,0.085142,0.07831,0.097166,0.075507,0.015066,0.049688,0.011717,-0.030254,-0.012654,0.043603,0.098861,0.061082,0.041644,0.043999,0.006136,0.019983,0.019287,0.024007,0.03068,0.021181,0.021895,-0.01348,-0.042852,-0.032926,-0.017935,-0.003021,0.007454,-0.008576,-0.020327,-0.035717,-0.028129,-0.013478,-0.009108,-7.5e-05,0.016894,0.012548,0.016892,0.000379],[-0.016005,-0.017117,-0.013169,-0.032547,-0.033414,-0.021524,-0.023215,-0.028648,-0.009016,-0.006783,0.000209,0.009203,0.011052,0.017104,0.013553,0.045679,0.016035,0.021076,0.026607,0.032462,0.018197,0.0158,0.010471,0.011101,-0.002784,0.004688,0.011212,0.011314,0.0248,0.005912,0.013466,0.018549,-0.005585,0.004014,0.002073,0.004411,-0.002792,-0.007304,-0.011393,0.005059,-0.0172,0.014842,0.008555,0.013659,0.007148,0.017191,0.020993,0.024693,0.001556,0.016656,-0.01389,-0.063982,0.008852,0.026993,-0.010197,-0.048599,-0.034168,-0.060332,-0.040717,-0.01724,0.000621,-0.00985,0.017842,0.017477,0.042562,-0.014336,0.016319,0.042867,0.072853,0.090557,0.121318,0.06571,0.042012,0.06375,0.063865,0.161297,0.094902,0.13963,0.193757,0.163513,0.096477,0.114584,0.095574,0.091943,0.109831,0.119859,0.114569,0.100385,0.083319,0.06041,0.048091,0.044744,0.050152,0.055489,-0.011689,0.020571,0.040265,0.027439,0.033457,0.00692,0.000326,0.000321,-0.014769,0.037539,0.016061,0.034803,0.036873,0.047087,0.003527,0.005972,-0.014974,0.034281,0.006278,0.027352,0.036967,-0.019885,-0.023585,-0.01977,-0.017865,-0.014808],[0.002517,-0.007694,-0.0006,0.010416,0.01572,0.004952,0.005966,0.009901,0.015211,0.012708,0.010424,0.005615,-0.022298,-0.016313,-0.023819,-0.033799,-0.048009,-0.055879,-0.053672,-0.052981,-0.054608,-0.05207,-0.046325,-0.041476,-0.011506,-0.017095,-0.010662,-0.010361,0.000725,-0.003653,-0.007311,-0.022378,-0.031071,-0.032625,-0.048679,-0.049511,-0.047599,-0.04572,-0.047358,-0.045299,-0.047806,-0.025354,-0.034196,-0.018719,-0.005596,-0.004525,0.0082,0.006347,0.006111,0.01004,0.006527,-0.021933,0.000978,-0.011609,0.005338,0.006322,0.003679,-0.021539,0.001518,0.001631,0.013341,0.005294,0.002702,0.031639,0.023016,0.02882,0.018639,0.020797,0.017035,0.040929,0.021657,0.022799,0.009633,0.016552,0.018215,0.016249,0.003927,0.0,0.000426,0.002228,-0.001908,-0.015834,-0.01823,-0.016665,-0.022474,-0.022098,-0.01556,-0.01673,-0.018182,-0.043763,-0.055934,-0.057702,-0.063303,-0.048591,-0.047825,-0.036701,-0.053031,-0.044762,-0.064516,-0.064829,-0.064922,-0.052288,-0.061613,-0.066067,-0.104774,-0.121099,-0.109297,-0.132788,-0.114178,-0.122694,-0.102644,-0.107554,-0.138169,-0.10988,-0.099268,-0.092998,-0.018239,0.009943,-0.026349,-0.014472],[0.015102,0.010357,0.011456,0.011906,0.013124,0.01485,0.011332,0.015608,0.013883,0.00891,0.005099,-0.001895,0.000699,-0.001095,0.000397,-0.000395,-0.000785,0.001277,0.005799,0.004503,0.003448,0.004763,0.00189,0.004995,0.009679,0.006376,0.007747,0.010287,0.012375,0.006767,0.009772,0.011499,0.010505,0.0079,0.009632,0.007952,0.008499,0.005643,0.006209,0.004993,0.003783,0.006332,0.002807,0.00289,0.005829,0.002058,0.008458,0.006706,0.006761,0.008171,0.005779,0.007793,0.009085,0.009003,0.014959,0.010663,0.008403,0.011538,0.004193,0.006466,0.009928,0.011815,0.014023,0.01508,0.01111,0.008443,0.002662,0.011121,0.011782,0.015273,0.020394,0.023263,0.016095,0.0221,0.02132,0.024569,0.027754,0.025021,0.027691,0.033465,0.036069,0.040084,0.041972,0.040046,0.040216,0.043716,0.046356,0.043777,0.039539,0.04186,0.041432,0.040386,0.032529,0.031856,0.029138,0.030455,0.019513,0.021078,0.022556,0.023152,0.024382,0.027082,0.025075,0.022819,0.023894,0.019784,0.019082,0.011538,0.01279,0.007531,0.005537,0.012272,0.009261,0.006766,0.008817,0.012394,0.00726,0.004176,0.002526,0.00623],[0.017108,0.017208,0.017408,0.016997,0.017591,0.012459,0.016665,0.015932,0.026467,0.025134,0.02504,0.026029,0.026121,0.026019,0.025715,0.025514,0.024499,0.029175,0.02439,0.024361,0.013327,0.017278,0.019504,0.018713,0.01726,0.017163,0.01726,0.017551,0.017549,0.018031,0.017737,0.017909,0.024778,0.024765,0.023298,0.02263,0.02436,0.024268,0.02436,0.024261,0.024069,0.023584,0.024058,0.022512,0.024365,0.022685,0.022304,0.022963,0.022208,0.022212,0.022023,0.022113,0.022485,0.022485,0.022475,0.022572,0.013618,0.019828,0.02046,0.020456,0.021182,0.021367,0.021367,0.021182,0.021538,0.022353,0.022071,0.022616,0.030811,0.023615,0.022977,0.023328,0.024023,0.024111,0.024289,0.024377,0.024274,0.023458,0.023807,0.02477,0.034408,0.035993,0.034863,0.034931,0.03428,0.035662,0.035482,0.035479,0.035202,0.036239,0.036134,0.03712,0.041999,0.039849,0.041984,0.042546,0.047037,0.046552,0.047472,0.047468,0.047038,0.047241,0.047055,0.050358,0.036195,0.041543,0.037558,0.036632,0.031815,0.031065,0.030001,0.029919,0.030003,0.028772,0.028924,0.029717,0.026918,0.027131,0.029843,0.029758],[0.017777,0.012214,0.014155,0.019471,0.017967,0.018557,0.01141,0.012412,0.017712,0.024053,0.023725,0.018023,0.02098,0.019545,0.0196,0.014125,0.015865,0.011265,0.011855,0.017635,0.019272,0.015889,0.01852,0.013672,0.02045,0.011052,0.023689,0.01795,0.019522,0.023731,0.024471,0.027986,0.023056,0.024383,0.022073,0.018921,0.019366,0.017607,0.003983,0.018886,0.015414,0.015612,0.015033,0.007572,0.016124,0.014035,0.011226,0.015522,0.016446,0.017872,0.014548,0.006809,0.01122,0.007453,0.00527,0.014405,0.002877,0.002806,0.005175,0.001125,-0.001953,-0.000467,0.004469,0.00836,-0.000186,0.002312,0.002983,0.005204,0.018136,0.018278,0.020872,0.023417,0.025901,0.032424,0.033463,0.033908,0.051478,0.054341,0.071911,0.059314,0.044806,0.049821,0.050426,0.050888,0.046953,0.050231,0.047448,0.061717,0.056319,0.055915,0.047835,0.04655,0.054802,0.054523,0.044951,0.040324,0.039556,0.037315,0.032454,0.033181,0.030311,0.027845,0.026236,0.031737,0.027544,0.026969,0.028149,0.031394,0.028621,0.029659,0.028946,0.019302,0.019884,0.028058,0.023767,0.02378,0.022311,0.021991,0.018686,0.020049],[0.014697,0.013365,0.012431,0.012284,0.009578,0.011598,0.01253,0.010671,0.010283,0.009894,0.010476,0.009949,0.009325,0.011107,0.013566,0.010162,0.014824,0.013738,0.01287,0.012236,0.012154,0.011381,0.011947,0.013398,0.01091,0.010887,0.012309,0.01299,0.012367,0.011504,0.010556,0.011113,0.011715,0.013601,0.013562,0.013026,0.013029,0.012225,0.011195,0.01157,0.00683,0.010024,0.011316,0.011859,0.011194,0.009653,0.007124,0.008349,0.009118,0.013131,0.007826,0.010103,0.012229,0.002577,0.006982,0.00505,0.004676,0.00784,0.008125,0.003997,0.014172,0.01088,0.012595,0.013682,0.013686,0.021797,0.016716,0.019245,0.020802,0.018594,0.02048,0.02673,0.022789,0.025456,0.027401,0.02988,0.033054,0.030554,0.033442,0.033206,0.029962,0.034274,0.040138,0.037758,0.038419,0.040066,0.040597,0.03778,0.037855,0.043659,0.041218,0.042222,0.043003,0.040882,0.035641,0.033894,0.040265,0.040716,0.033065,0.039976,0.037429,0.037069,0.035854,0.036279,0.036986,0.036941,0.038382,0.041129,0.03998,0.03769,0.045555,0.040114,0.043613,0.041757,0.041317,0.036259,0.034163,0.030953,0.02982,0.024628]],"cp00":[0.003242,-0.001106,-0.000799,-0.001196,0.000895,0.003085,0.0039,0.003786,0.005101,0.004697,0.00691,0.008093,0.015653,0.014299,0.013788,0.013875,0.009339,0.007738,0.00777,0.009927,0.010746,0.011538,0.012432,0.012488,0.014816,0.013104,0.017246,0.018312,0.022935,0.023134,0.025996,0.025654,0.025005,0.024975,0.021611,0.01899,0.014305,0.015581,0.012885,0.014503,0.01097,0.013663,0.01262,0.01265,0.011141,0.00921,0.012212,0.016138,0.016615,0.015728,0.007556,0.003717,0.004093,0.002183,0.008562,0.002082,0.00019,0.000665,0.002185,-0.000284,0.007507,0.0076,0.01386,0.016141,0.017916,0.018848,0.015376,0.023515,0.02716,0.032013,0.034028,0.033948,0.032821,0.041671,0.051124,0.053822,0.058205,0.065353,0.067819,0.065603,0.062315,0.070692,0.070767,0.067313,0.070405,0.072948,0.066809,0.068895,0.060107,0.053316,0.050722,0.057234,0.056571,0.045478,0.03861,0.041045,0.033953,0.032054,0.024132,0.023725,0.025984,0.025433,0.026993,0.021867,0.014415,0.01587,0.016815,0.017532,0.018317,0.009318,0.008806,0.009238,0.005907,0.008644,0.009433,0.008255,0.010719,0.008418,0.007863,0.006552],"ea":[0.002647,-0.00172,-0.0009,-0.003086,-0.001886,-0.000199,0.001099,0.001798,0.003489,0.004679,0.005501,0.010699,0.017157,0.019357,0.015011,0.018474,0.013527,0.012609,0.012872,0.014958,0.015099,0.01318,0.014721,0.012762,0.012277,0.010539,0.012718,0.011178,0.018548,0.018727,0.021082,0.019945,0.019963,0.022007,0.018428,0.014457,0.013015,0.013971,0.013337,0.016678,0.011465,0.012031,0.009551,0.00944,0.007579,0.006412,0.008566,0.012325,0.012751,0.011353,0.006533,0.002003,-0.000381,0.001331,0.002485,-0.003245,-0.004666,-0.004089,-0.004199,-0.00409,0.007977,0.008347,0.012599,0.015515,0.019344,0.01871,0.021544,0.029584,0.03377,0.040676,0.049257,0.050334,0.051678,0.059467,0.07569,0.075827,0.081986,0.08801,0.090239,0.093082,0.101148,0.108267,0.102384,0.093389,0.087579,0.086125,0.069138,0.069699,0.061085,0.054927,0.052641,0.051978,0.042609,0.027982,0.022867,0.028443,0.026676,0.024475,0.023277,0.022642,0.024672,0.024044,0.024638,0.020378,0.016041,0.018523,0.020978,0.022966,0.023953,0.022195,0.020665,0.020707,0.0178,0.018958,0.019681,0.019813,0.021737,0.020558,0.020865,0.019051],"frx":[0.003344,-0.001107,-0.000799,-0.001196,0.000994,0.003184,0.004,0.003986,0.005301,0.004797,0.00701,0.008193,0.01596,0.014401,0.013488,0.013474,0.00894,0.00734,0.007371,0.009528,0.010447,0.011238,0.011734,0.011594,0.01382,0.01231,0.014097,0.015166,0.019888,0.020185,0.023037,0.022611,0.021859,0.021932,0.018872,0.016556,0.01167,0.012847,0.011374,0.013,0.009267,0.011968,0.010921,0.011056,0.009539,0.007506,0.009165,0.013106,0.013765,0.012878,0.004614,0.000766,0.000956,-0.000954,0.005545,-0.000951,-0.002959,-0.002484,-0.000669,-0.003234,0.004685,0.004684,0.012725,0.015024,0.017105,0.017947,0.014546,0.022842,0.026709,0.0316,0.034915,0.034832,0.033787,0.042912,0.052527,0.055341,0.059752,0.067148,0.069628,0.067182,0.063869,0.072496,0.072558,0.068978,0.071994,0.074628,0.066691,0.06843,0.059397,0.052377,0.049676,0.056413,0.055653,0.044314,0.037315,0.039855,0.031347,0.029035,0.022383,0.022408,0.024686,0.024134,0.025791,0.020551,0.012951,0.014421,0.015369,0.016094,0.01757,0.008663,0.00823,0.008505,0.005227,0.008072,0.008869,0.007602,0.010163,0.007843,0.0072,0.005879],"profiles":{"Under 30":[0.103594,0.027484,0.057082,0.15222,0.005285,0.028541,0.034884,0.042283,0.014799,0.065539,0.063425,0.034884,0.031712,0.10148,0.010571,0.07611,0.150106],"Aged 30 to 44":[0.145977,0.027586,0.057471,0.083908,0.005747,0.028736,0.04023,0.051724,0.017241,0.070115,0.064368,0.022989,0.027586,0.089655,0.005747,0.081609,0.17931],"Aged 45 to 59":[0.171362,0.03169,0.049296,0.064554,0.005869,0.028169,0.049296,0.052817,0.018779,0.078638,0.066901,0.023474,0.028169,0.090376,0.012911,0.071596,0.156103],"Aged 60 or over":[0.203956,0.029666,0.030902,0.054388,0.008653,0.037083,0.065513,0.067985,0.021014,0.067985,0.055624,0.013597,0.025958,0.088999,0.001236,0.037083,0.190358],"Income quintile 1":[0.157895,0.037594,0.046187,0.18797,0.003222,0.048335,0.059076,0.03652,0.016112,0.034372,0.051557,0.023631,0.037594,0.070892,0.008593,0.042965,0.137487],"Income quintile 2":[0.171233,0.034247,0.042237,0.127854,0.004566,0.042237,0.059361,0.045662,0.018265,0.046804,0.059361,0.021689,0.031963,0.075342,0.004566,0.046804,0.167808],"Income quintile 3":[0.181818,0.033058,0.044864,0.083825,0.005903,0.034238,0.054309,0.050767,0.021251,0.057851,0.068477,0.016529,0.029516,0.085006,0.003542,0.051948,0.177096],"Income quintile 4":[0.180288,0.028846,0.046875,0.049279,0.009615,0.026442,0.049279,0.05649,0.019231,0.081731,0.067308,0.018029,0.027644,0.091346,0.004808,0.0625,0.180288],"Top 20% income":[0.153846,0.024038,0.049279,0.030048,0.007212,0.022837,0.043269,0.069712,0.018029,0.09375,0.060096,0.02524,0.021635,0.106971,0.010817,0.085337,0.177885]},"official":{"2016":[0.159528,0.04288,0.04767,0.069569,0.01931,0.01762,0.04981,0.059429,0.04586,0.04041,0.093099,0.02848,0.03216,0.089579,0.00341,0.081389,0.119799],"2017":[0.16004,0.04241,0.0496,0.07014,0.01904,0.01768,0.0511,0.05853,0.04459,0.04031,0.08993,0.02891,0.03185,0.08923,0.00381,0.0831,0.11973],"2018":[0.160862,0.04278,0.04802,0.068911,0.01913,0.01776,0.051221,0.057941,0.04519,0.04329,0.094291,0.02903,0.02988,0.082871,0.00381,0.085621,0.119391],"2019":[0.160103,0.042331,0.046261,0.067271,0.01912,0.01707,0.053661,0.057571,0.042791,0.043981,0.096632,0.029321,0.028661,0.082242,0.0041,0.088322,0.120562],"2020":[0.159262,0.04406,0.04411,0.068301,0.01914,0.01663,0.052591,0.054671,0.04282,0.04277,0.099851,0.03076,0.0276,0.081631,0.00409,0.089931,0.121781],"2021":[0.1779,0.0506,0.04107,0.0783,0.01981,0.01869,0.05512,0.05847,0.04343,0.038,0.09197,0.01696,0.03224,0.08023,0.00442,0.06698,0.12581],"2022":[0.165553,0.044941,0.039811,0.073011,0.02078,0.01726,0.063361,0.059281,0.045481,0.036161,0.102572,0.01967,0.030321,0.080252,0.00376,0.073731,0.124052],"2023":[0.1619,0.04095,0.04013,0.06686,0.02041,0.01639,0.0604,0.05561,0.04225,0.03166,0.10164,0.03145,0.02758,0.08092,0.0048,0.09918,0.11787],"2024":[0.15032,0.03878,0.03963,0.07215,0.02464,0.01793,0.05217,0.05158,0.04279,0.03277,0.0979,0.03098,0.02731,0.09167,0.00557,0.10722,0.11659],"2025":[0.14716,0.03569,0.03787,0.07252,0.02394,0.0187,0.05392,0.04889,0.04837,0.03185,0.09377,0.03182,0.02441,0.09358,0.00618,0.10777,0.12356]}};
+const LABELS = {CP01:'Food',CP02:'Alcohol and tobacco',CP03:'Clothing',CP041:'Rent',CP043:'Home repairs',CP044:'Water and home services',CP045:'Electricity and gas',CP05:'Furnishings',CP06:'Health',CP071:'Vehicle purchases',CP072:'Fuel and vehicle running',CP073:'Transport services',CP08:'Communications',CP09:'Recreation',CP10:'Education',CP11:'Restaurants and hotels',CP12:'Other goods and services',EXCL:'Not consumption'};
+const MONTHS = Array.from({length:120},(_,i)=>`${2016+Math.floor(i/12)}-${String(i%12+1).padStart(2,'0')}`);
+const DEC22 = 83, N = 120;
+// Latest month: Eurostat HICP, COICOP 2018 (prc_hicp_minr), annual rate of change, September 2026. Old CP12 = new CP12 and CP13 weighted by 2026 item weights (42.69 and 74.79 per mille).
+const TODAY = {label:'September 2026', inf:[0.015,0.019,-0.008,0.016,0.022,0.031,0.101,0.002,0.009,0.001,0.151,0.059,0.032,0.000,0.034,0.027,0.0288], cp00:0.034, ea:0.038, frx:0.034};
+const state = {profile:'Aged 60 or over', hedge:'ea', year:2022, custom:null};
+
+// ---------- statistics ----------
+const mean = a => a.reduce((s,x)=>s+x,0)/a.length;
+const varS = a => {const m=mean(a); return a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1);};
+const covS = (a,b) => {const ma=mean(a), mb=mean(b); let s=0; for(let i=0;i<a.length;i++) s+=(a[i]-ma)*(b[i]-mb); return s/(a.length-1);};
+const series = w => MONTHS.map((_,t)=>w.reduce((s,wi,i)=>s+wi*D.inf[i][t],0));
+const flag = D.cp00.map(x=>x>0.03);
+function weights(){ return state.profile==='__custom' && state.custom ? state.custom : D.profiles[state.profile]; }
+function compute(hk){
+  hk = hk || state.hedge;
+  const w = weights(), p = series(w), h = D[hk];
+  const diff = p.map((x,i)=>x-h[i]);
+  const dS = diff.filter((_,i)=>flag[i]);
+  const hr = covS(p,h)/varS(h);
+  const resid = Math.sqrt(Math.max(0, varS(p)-hr*hr*varS(h)));
+  const scen = w.reduce((s,wi,i)=>s+wi*D.inf[i][DEC22],0);
+  const W = (+document.getElementById('portfolio').value||0)*((+document.getElementById('rate').value||0)/100);
+  return {w,p,h,diff,teShock:Math.sqrt(varS(dS)),teAll:Math.sqrt(varS(diff)),hr,resid,scen,hedgeDec:h[DEC22],offDec:D.cp00[DEC22],W,uncovered:W*(scen-h[DEC22])};
+}
+// ---------- formatting ----------
+const pct = (x,d=1) => (x*100).toFixed(d).replace('-','−')+'%';
+const pts = (x,d=2) => (x*100).toFixed(d).replace('-','−')+' pt';
+const eur = x => (x<0?'−':'')+'€'+Math.round(Math.abs(x)).toLocaleString('en-GB');
+function clientName(){ return state.profile==='__custom' ? (state.customWho ? 'this client ('+state.customWho+')' : 'this client') : 'a household '+({'Under 30':'under 30','Aged 30 to 44':'aged 30 to 44','Aged 45 to 59':'aged 45 to 59','Aged 60 or over':'aged 60 or over','Income quintile 1':'in the lowest income fifth','Income quintile 2':'in the second income fifth','Income quintile 3':'in the middle income fifth','Income quintile 4':'in the fourth income fifth','Top 20% income':'in the top 20% by income'})[state.profile]; }
+const hedgeLabel = () => state.hedge==='ea' ? 'the euro area index (excl. tobacco)' : 'the French index (excl. tobacco)';
+
+// ---------- render review ----------
+function renderReview(){
+  const r = compute();
+  document.getElementById('hedgeName').textContent = state.hedge==='ea' ? 'Hedge index: euro area excl. tobacco' : 'Hedge index: France excl. tobacco';
+  document.getElementById('wHint').innerHTML = `Annual withdrawals: ${eur(r.W)}. Only spending is exposed to consumer prices.<br><span style="font-size:11.5px">*Default 4%: the common “4% rule” of thumb in retirement planning (Bengen, 1994). Edit it for each client.</span>`;
+  const gap = r.scen - r.hedgeDec;
+  const v = document.getElementById('verdict');
+  const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+  const tNow = r.w.reduce((s,wi,i)=>s+wi*TODAY.inf[i],0), hNow = TODAY[state.hedge], gNow = tNow-hNow;
+  document.getElementById('today').innerHTML = `<span class="tag2">Today (${TODAY.label})</span>${cap(clientName())} faces <b>${pct(tNow)}</b> inflation a year, against <b>${pct(hNow)}</b> for the hedge index and ${pct(TODAY.cp00)} official French inflation: ${gNow>0?`<b style="color:var(--red)">${pts(gNow)} not covered</b>, ${eur(gNow*r.W)} a year on these withdrawals`:`covered with ${pts(-gNow)} to spare`}. Household energy is up ${pct(TODAY.inf[6])} and fuel and vehicle running costs ${pct(TODAY.inf[10])} on a year earlier.`;
+  if (gap > 0) {
+    v.innerHTML = `If a 2022-type shock hit today’s basket, ${clientName()} would see costs rise <b>${pct(r.scen)}</b>. The hedge would pay <b>${pct(r.hedgeDec)}</b>, leaving <b class="neg">${eur(r.uncovered)}</b> of the year’s spending uncovered.`;
+  } else {
+    v.innerHTML = `If a 2022-type shock hit today’s basket, ${clientName()} would see costs rise <b>${pct(r.scen)}</b>. The hedge would pay <b class="pos">${pct(r.hedgeDec)}</b>: covered this time, by luck of the index.`;
+  }
+  document.getElementById('verdictSub').textContent = `Hedge: ${hedgeLabel()}. Official French inflation in the same month: ${pct(r.offDec)}. Shock scenario (a stress test of today’s basket, not a reconstruction of the past): each category moves as it did from December 2021 to December 2022.`;
+  const m = [
+    [pts(r.teShock), 'Basis risk in shocks', 'Tracking error against the hedge in shock months (calm-and-shock: '+pts(r.teAll)+')'],
+    [r.hr.toFixed(2), 'Hedge ratio', 'Euros of this hedge that best track one euro of the client’s spending'],
+    [pts(r.resid), 'Residual risk', 'What no amount of this hedge removes'],
+    [eur(Math.abs(r.uncovered)), gap>0?'Uncovered in a 2022-type year':'Surplus in a 2022-type year', 'On '+eur(r.W)+' of annual withdrawals']
+  ];
+  document.getElementById('strip').innerHTML = m.map(([val,k,c])=>`<div class="metric"><div class="v">${val}</div><div class="k">${k}</div><div class="c">${c}</div></div>`).join('');
+  lineChart(r); drivers(r); basket(r); renderFindings(r);
+}
+function lineChart(r){
+  const W=760,H=300,L=44,R=12,T=12,B=28, all=[...r.p,...r.h,...D.cp00];
+  let lo=Math.floor(Math.min(...all)*100)/100, hi=Math.ceil(Math.max(...all)*100)/100;
+  const x=i=>L+(W-L-R)*i/(N-1), y=v=>T+(H-T-B)*(hi-v)/(hi-lo);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Line chart of client inflation, hedge index and official inflation, 2016 to 2025">`;
+  // shock bands
+  let i=0; while(i<N){ if(flag[i]){ let j=i; while(j<N&&flag[j]) j++; s+=`<rect x="${x(i)-2}" y="${T}" width="${x(j-1)-x(i)+4}" height="${H-T-B}" fill="var(--band)"/>`; i=j;} else i++; }
+  // grid
+  const step = (hi-lo)>0.08?0.02:0.01;
+  for(let g=Math.ceil(lo/step)*step; g<=hi+1e-9; g+=step){ s+=`<line x1="${L}" x2="${W-R}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(g)+4}" text-anchor="end">${Math.round(g*100)}%</text>`; }
+  for(let k=0;k<10;k++){ s+=`<text x="${x(k*12+6)}" y="${H-8}" text-anchor="middle">${2016+k}</text>`; }
+  // gap fill
+  for(let t=0;t<N-1;t++){ const d=(r.p[t]-r.h[t])+(r.p[t+1]-r.h[t+1]); s+=`<polygon points="${x(t)},${y(r.p[t])} ${x(t+1)},${y(r.p[t+1])} ${x(t+1)},${y(r.h[t+1])} ${x(t)},${y(r.h[t])}" fill="${d>0?'var(--red-soft)':'var(--glass-soft)'}"/>`; }
+  const path = a => a.map((v,t)=>(t?'L':'M')+x(t).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+  s+=`<path d="${path(D.cp00)}" fill="none" stroke="var(--muted)" stroke-width="1"/>`;
+  s+=`<path d="${path(r.h)}" fill="none" stroke="var(--brass)" stroke-width="2"/>`;
+  s+=`<path d="${path(r.p)}" fill="none" stroke="var(--harbour)" stroke-width="2.5"/>`;
+  s+=`<line x1="${x(DEC22)}" x2="${x(DEC22)}" y1="${T}" y2="${H-B}" stroke="var(--ink)" stroke-dasharray="3 3" stroke-width="1"/><text x="${x(DEC22)+5}" y="${T+12}">Dec 2022: scenario month</text>`;
+  const lc=document.getElementById('lineChart'); lc.innerHTML = s+'</svg>'; lc.scrollLeft = lc.scrollWidth;
+}
+function drivers(r){
+  const y=state.year; let contrib, ylab;
+  if (y==='shock') {
+    const idx=[]; for(let t=0;t<N;t++) if(flag[t]) idx.push(t);
+    contrib = D.codes.map((c,i)=>({c, v:mean(idx.map(t=>(r.w[i]-D.official[MONTHS[t].slice(0,4)][i])*D.inf[i][t]))}));
+    ylab = 'the shock months';
+  } else if (y==='today') {
+    const off=D.official['2025'];
+    contrib = D.codes.map((c,i)=>({c, v:(r.w[i]-off[i])*TODAY.inf[i]}));
+    ylab = 'Sep 2026';
+  } else {
+    const off=D.official[String(y)], idx=MONTHS.map((m,i)=>m.startsWith(String(y))?i:-1).filter(i=>i>=0);
+    contrib = D.codes.map((c,i)=>({c, v:(r.w[i]-off[i])*mean(idx.map(t=>D.inf[i][t]))}));
+    ylab = String(y);
+  }
+  const total = contrib.reduce((s,o)=>s+o.v,0);
+  const rows = contrib.slice().sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,8);
+  const W=420,rowH=26,H=rows.length*rowH+34, lab=178, bend=362, mid=lab+(bend-lab)/2, span=Math.max(...rows.map(o=>Math.abs(o.v)),1e-6), sc=((bend-lab)/2-6)/span;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Largest contributions to the gap in ${y}">`;
+  s+=`<line x1="${mid}" x2="${mid}" y1="4" y2="${H-30}" stroke="var(--line)"/>`;
+  rows.forEach((o,k)=>{ const yy=8+k*rowH, w=Math.abs(o.v)*sc, xx=o.v>=0?mid:mid-w;
+    s+=`<text x="${lab-8}" y="${yy+13}" text-anchor="end" style="fill:var(--ink)">${LABELS[o.c]}</text>`;
+    s+=`<rect x="${xx}" y="${yy}" width="${Math.max(w,1)}" height="16" rx="3" fill="${o.v>=0?'var(--red)':'var(--glass)'}"/>`;
+    s+=`<text x="${W-2}" y="${yy+13}" text-anchor="end">${o.v>=0?'+':''}${pts(o.v)}</text>`; });
+  s+=`<text x="0" y="${H-8}" style="fill:var(--ink);font-weight:600">Sum of contributions in ${ylab}: ${total>=0?'+':''}${pts(total)}</text>`;
+  document.getElementById('drivers').innerHTML = s+'</svg>';
+}
+function basket(r){
+  const off=D.official['2022'];
+  const rows=D.codes.map((c,i)=>({c,a:r.w[i],b:off[i]})).sort((p,q)=>Math.max(q.a,q.b)-Math.max(p.a,p.b)).slice(0,9);
+  const W=420,rowH=28,H=rows.length*rowH+30, x0=170, sc=(W-x0-46)/Math.max(...rows.map(o=>Math.max(o.a,o.b)));
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Client basket against the official basket">`;
+  rows.forEach((o,k)=>{ const yy=6+k*rowH;
+    s+=`<text x="${x0-8}" y="${yy+15}" text-anchor="end" style="fill:var(--ink)">${LABELS[o.c]}</text>`;
+    s+=`<rect x="${x0}" y="${yy}" width="${o.a*sc}" height="10" rx="2" fill="var(--harbour)"/><text x="${x0+o.a*sc+5}" y="${yy+9}">${pct(o.a)}</text>`;
+    s+=`<rect x="${x0}" y="${yy+12}" width="${o.b*sc}" height="6" rx="2" fill="var(--muted)" opacity=".55"/>`; });
+  s+=`<text x="0" y="${H-6}">Thick bar: client. Thin bar: official French basket (HICP weights, 2022).</text>`;
+  document.getElementById('basket').innerHTML = s+'</svg>';
+}
+
+// ---------- analysis ----------
+function contributions(w, y){
+  const off=D.official[String(y)], idx=MONTHS.map((m,i)=>m.startsWith(String(y))?i:-1).filter(i=>i>=0);
+  return D.codes.map((c,i)=>({c, v:(w[i]-off[i])*mean(idx.map(t=>D.inf[i][t]))})).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
+}
+function facts(){
+  const r = compute(), other = state.hedge==='ea' ? 'frx' : 'ea', r2 = compute(other);
+  const off = D.official['2022'];
+  const diffs = D.codes.map((c,i)=>({c, d:r.w[i]-off[i], w:r.w[i]})).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d)).slice(0,3);
+  return {r, r2, other, c22: contributions(r.w,2022).slice(0,3), c23: contributions(r.w,2023).slice(0,3), diffs};
+}
+const hedgeShort = k => k==='ea' ? 'euro area index' : 'French index';
+function renderFindings(){
+  const f = facts(), r = f.r, gap = r.scen - r.hedgeDec;
+  const better = f.r2.resid < r.resid;
+  const sign = v => (v>=0?'+':'')+pts(v);
+  const items = [
+    `<b>Shock scenario.</b> If a 2022-type year hit today’s basket, it would rise ${pct(r.scen)}, the ${hedgeShort(state.hedge)} ${pct(r.hedgeDec)}: ${gap>0?`<span style="color:var(--red)">${eur(r.uncovered)} of spending left uncovered</span>`:`a surplus of ${eur(Math.abs(r.uncovered))}`} on ${eur(r.W)} of withdrawals.`,
+    `<b>Basis risk is episodic.</b> The spread against the hedge is ${pts(r.teShock)} in shock months against ${pts(r.teAll)} over the whole period: the risk concentrates in the episodes that matter.`,
+    `<b>Hedge choice.</b> With the ${hedgeShort(state.hedge)} the best hedge ratio is ${r.hr.toFixed(2)} and ${pts(r.resid)} of risk remains. With the ${hedgeShort(f.other)}: ratio ${f.r2.hr.toFixed(2)}, residual ${pts(f.r2.resid)}${better?` (<b>${Math.round((1-f.r2.resid/r.resid)*100)}% less</b>)`:''}.`,
+    `<b>What drives the gap.</b> 2022: ${f.c22.map(o=>`${LABELS[o.c]} ${sign(o.v)}`).join(', ')}. 2023: ${f.c23.map(o=>`${LABELS[o.c]} ${sign(o.v)}`).join(', ')}.`,
+    `<b>How the basket differs.</b> Largest gaps with the official basket: ${f.diffs.map(o=>`${LABELS[o.c]} ${pct(o.w)} (${o.d>=0?'+':''}${(o.d*100).toFixed(1).replace('-','−')} pt)`).join(', ')}.`
+  ];
+  document.getElementById('findings').innerHTML = items.map(t=>`<li>${t}</li>`).join('');
+  document.getElementById('brief').hidden = true; document.getElementById('briefStatus').textContent = ''; document.getElementById('briefDl').hidden = true;
+  syncBrief();
+}
+let briefCtl=null;
+async function writeBrief(){
+  const f = facts(), r = f.r, btn = document.getElementById('runBrief');
+  btn.disabled = true; document.getElementById('stopBrief').hidden = false; briefCtl = new AbortController();
+  document.getElementById('briefStatus').textContent = 'Thinking…';
+  const data = {
+    client: state.profile==='__custom' ? 'basket built from the client\'s classified transactions' : 'survey average basket: '+state.profile,
+    hedge_index: hedgeShort(state.hedge)+' excluding tobacco', annual_withdrawals_eur: Math.round(r.W),
+    scenario_2022_basket_inflation_pct: +(r.scen*100).toFixed(2), scenario_hedge_index_pct: +(r.hedgeDec*100).toFixed(2), today_month: TODAY.label, today_basket_inflation_pct: +(r.w.reduce((s,wi,i)=>s+wi*TODAY.inf[i],0)*100).toFixed(2), today_hedge_index_pct: +(TODAY[state.hedge]*100).toFixed(2), today_official_france_pct: +(TODAY.cp00*100).toFixed(2), scenario_official_france_pct: +(r.offDec*100).toFixed(2),
+    scenario_uncovered_eur: Math.round(r.uncovered), tracking_error_shock_pt: +(r.teShock*100).toFixed(2), tracking_error_all_pt: +(r.teAll*100).toFixed(2),
+    hedge_ratio: +r.hr.toFixed(2), residual_risk_pt: +(r.resid*100).toFixed(2),
+    alternative_index: hedgeShort(f.other), alternative_hedge_ratio: +f.r2.hr.toFixed(2), alternative_residual_risk_pt: +(f.r2.resid*100).toFixed(2),
+    drivers_2022_pt: f.c22.map(o=>({category:LABELS[o.c], contribution:+(o.v*100).toFixed(2)})),
+    drivers_2023_pt: f.c23.map(o=>({category:LABELS[o.c], contribution:+(o.v*100).toFixed(2)})),
+    basket_vs_official: f.diffs.map(o=>({category:LABELS[o.c], client_share_pct:+(o.w*100).toFixed(1), difference_pt:+(o.d*100).toFixed(1)}))
+  };
+  const prompt = `You are a senior analyst at a private bank in Monaco. Write a short briefing for a private banker preparing a client's annual review about inflation basis risk: the gap between the inflation of the client's own spending basket and the index their inflation hedge tracks. Use only the figures below; do not invent numbers. Plain, precise English for a non-specialist. Present options for the banker to discuss with the client.\nFigures (JSON): ${JSON.stringify(data)}\nReturn only JSON with this shape: {"headline": one sentence, "situation": 2-3 sentences, "drivers": 2-3 sentences, "options": [2-3 short options for the conversation, each one sentence], "watch": one sentence on what to monitor, "caveat": one sentence on the limits of the figures}.`;
+  try{
+    const out = await sample.json(prompt, {signal: briefCtl.signal});
+    const esc2 = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    document.getElementById('brief').innerHTML =
+      `<p class="bh">${esc2(out.headline)}</p><h4>Situation</h4><p>${esc2(out.situation)}</p><h4>Drivers</h4><p>${esc2(out.drivers)}</p>` +
+      `<h4>Options to discuss</h4><ul>${(Array.isArray(out.options)?out.options:[]).map(o=>`<li>${esc2(o)}</li>`).join('')}</ul>` +
+      `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)}</p>`;
+    document.getElementById('brief').hidden = false; document.getElementById('briefDl').hidden = false; document.getElementById('briefStatus').textContent = '';
+  }catch(e){
+    const msg={not_granted:'AI drafting was not allowed in this view. The key findings above still apply.',rate_limited:'Too many requests just now. Wait a minute, then try again.',aborted:'Stopped. Nothing was changed.'}[e&&e.code];
+    if(e&&e.code==='not_granted') btn.hidden=true;
+    document.getElementById('briefStatus').textContent = msg || 'The briefing could not be written this time. The key findings above still apply.';
+  }finally{ btn.disabled=false; document.getElementById('stopBrief').hidden=true; }
+}
+document.getElementById('runBrief').addEventListener('click', writeBrief);
+document.getElementById('stopBrief').addEventListener('click', ()=>briefCtl&&briefCtl.abort());
+// Briefings recorded from Claude (Anthropic) on 5 November 2026, for two scenarios, from the figures shown on the page
+const RECORDED_BRIEFS = {
+ s1:{headline:'Covered in a 2022-type year, but a travel-heavy basket makes this client more sensitive to inflation than the hedge index.',
+  situation:'In a 2022-type shock this basket rises 8.4%, against 9.3% for the euro-area index: a surplus of about €760 on €80,000 of withdrawals. With a hedge ratio of 1.11 the basket moves more than the index, and 1.22 points of risk remain even with the best hedge.',
+  drivers:'Transport services (31.9% of spending, against about 2% in the official basket) add 3.3 points to the gap in 2022. A lower share of household energy pulls it back by 1.15 points, and food (27.5% of spending) adds 0.79 points.',
+  options:['Discuss a hedge slightly above one-to-one, in line with the hedge ratio of 1.11.','Compare with the French index, which lowers residual risk by about a fifth (0.99 against 1.22 points).','Rebuild the basket with a full year of transactions: travel in a single period may overstate transport.'],
+  watch:'Air fares, ride-hailing and fuel prices, which make up almost half of this basket.',
+  caveat:'Based on a selection of real, anonymised transactions from a student (under 30), classified by AI; not yet a private banking client.'},
+ s2:{headline:'The hedge over-paid in a 2022-type year, but basis risk for this basket jumps in shocks: 1.80 points against 1.25 on average.',
+  situation:'In a 2022-type shock this basket rises 8.3%, against 9.3% for the euro-area index: a surplus of about €853 on €80,000 of withdrawals. In shock months the gap with the hedge widens to 1.80 points, and 1.24 points remain even with the best hedge ratio of 1.06.',
+  drivers:'Ride-hailing and other transport services are 45.2% of spending and add 4.76 points to the gap in 2022. The client spends nothing on household energy or fuel, which pulls the gap back by 1.53 and 1.19 points.',
+  options:['Explain that today’s surplus depends on not paying energy or fuel bills: a move to a home with its own bills would change the picture.','Compare with the French index, which lowers residual risk by about a sixth (1.03 against 1.24 points).','Re-run the analysis with a full year of spending before changing the hedge.'],
+  watch:'Transport and ride-hailing prices, the largest part of this basket.',
+  caveat:'Based on a selection of real, anonymised card transactions from a student (under 30), with amounts in US dollars, classified by AI.'},
+ s3:{headline:'Over-covered in a 2022-type year: this basket avoids the categories that drove the shock.',
+  situation:'In a 2022-type shock this basket rises 6.6%, well below the 9.3% of the euro-area index: a surplus of about €2,192 on €80,000 of withdrawals. The risk is still there in shocks (1.70 points against 1.18 on average), and switching to the French index would not reduce it.',
+  drivers:'Transport services (47.5% of spending) add 5.01 points to the gap in 2022, but the basket has almost no household energy or groceries, which pull the gap back by 1.53 and 0.92 points. Education is an unusually large 20.7% of spending.',
+  options:['Keep the current hedge: neither index reduces this client’s residual risk (about 1.17 points either way).','Review the basket when the client’s life changes (own home, energy bills, family), since that is when exposure would rise.','Rebuild the basket with a full year of transactions: one month of travel and study costs is not typical.'],
+  watch:'Transport prices, and any future spending on energy and food.',
+  caveat:'Based on a small selection (12 lines) of real, anonymised transactions from a student (under 30), classified by AI.'},
+ p60:{headline:'The euro-area hedge over-paid in 2022, but it tracks this basket loosely: a French index would remove two-thirds of the residual risk.',
+  situation:'In a 2022-type shock this basket’s prices rise 7.1%, while the euro-area index the hedge follows rises 9.3%, so on €80,000 of annual withdrawals the hedge would pay about €1,762 more than needed. That surplus is luck, not design: in shock months the basket and the index drift apart by 1.69 points on average, against 1.01 points over the whole period.',
+  drivers:'The gap with official French inflation comes mostly from fuel and vehicle running (−0.55 pt in 2022: the survey records less spending on fuel and cars for this group than the official basket does) and from food (+0.28 pt in 2022, +0.52 pt in 2023). Food is 20.4% of this basket, 3.8 points more than in the official basket.',
+  options:['Discuss replacing part of the euro-area protection (OAT€i) with a French-index hedge (OATi): the hedge ratio rises from 0.73 to 0.99 and residual risk falls from 0.73 to 0.24 points.','Review the “inflation + X%” target against the client’s own basket rather than the euro-area index.','Agree to run a 2022-type stress test on the client’s withdrawals at each annual review.'],
+  watch:'Food and energy prices in France: the two categories that move this basket away from the hedge in shocks.',
+  caveat:'The figures use a survey-average basket for households aged 60 or over (2015 weights), not a real client’s transactions.'},
+ a1:{headline:'Covered in a 2022-type year, but this basket moves more than the hedge: it needs about 1.17 euros of protection per euro of spending.',
+  situation:'In a 2022-type shock this client’s basket rises 9.0%, close to the 9.3% of the euro-area index, leaving a small surplus of about €253 on €80,000 of withdrawals. The basket reacts more strongly than the index (hedge ratio 1.17), so a one-to-one hedge under-protects it, and 1.07 points of risk remain even with the best hedge.',
+  drivers:'Transport services dominate: they are 31.4% of this basket against about 2% in the official one, and add 3.2 points to the gap in 2022. Restaurants and hotels (16.2% of spending) and food add smaller amounts.',
+  options:['Discuss sizing the inflation hedge above one-to-one for this client, as the hedge ratio of 1.17 suggests.','Review whether the euro-area index is the right reference: the French index leaves less residual risk (0.82 points against 1.07).','Re-run the analysis with a full year of transactions: travel spending in a single month may not be typical.'],
+  watch:'Transport and travel prices, which drive this client’s gap.',
+  caveat:'Based on one month of real, anonymised transactions (a selection), classified by AI; a full year would give a more reliable basket.'}
+};
+function briefKey(){
+  const W = (+document.getElementById('portfolio').value||0)*((+document.getElementById('rate').value||0)/100);
+  if (state.hedge!=='ea' || Math.abs(W-80000)>0.5) return '';
+  if (state.profile==='Aged 60 or over') return 'p60';
+  if (state.profile==='__custom' && RECORDED_BRIEFS[state.recKey]) return state.recKey;
+  return '';
+}
+function syncBrief(){
+  const b=document.getElementById('runBriefDemo'); if(!b) return;
+  if (sample) { b.hidden=true; if (document.getElementById('briefStatus').textContent.startsWith('Demo briefings')) document.getElementById('briefStatus').textContent=''; return; }
+  const k = briefKey(); b.hidden = !k;
+  if (!k) document.getElementById('briefStatus').textContent = 'Demo briefings are recorded with the euro area index and €80,000 of withdrawals for “Aged 60 or over” and for the four real examples (Students 1–3, Adult 1) after “Classify with AI (demo)” and “Use this basket”. Inside Claude, the briefing is written live for any client.';
+}
+function showBrief(out, demo){
+  const esc2 = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  document.getElementById('brief').innerHTML = (demo?'<p style="margin:0 0 10px"><span class="pill diff">Demo mode</span> <span style="color:var(--muted);font-size:13px">Briefing recorded from Claude (Anthropic) on 5 November 2026 for this case.</span></p>':'') +
+    `<p class="bh">${esc2(out.headline)}</p><h4>Situation</h4><p>${esc2(out.situation)}</p><h4>Drivers</h4><p>${esc2(out.drivers)}</p>` +
+    `<h4>Options to discuss</h4><ul>${(Array.isArray(out.options)?out.options:[]).map(o=>`<li>${esc2(o)}</li>`).join('')}</ul>` +
+    `<h4>What to monitor</h4><p>${esc2(out.watch)}</p><p class="cav">${esc2(out.caveat)}</p>`;
+  document.getElementById('brief').hidden = false; document.getElementById('briefDl').hidden = false;
+}
+function briefDoc(){
+  const who = state.profile==='__custom' ? (state.customLabel||'Client basket') : state.profile+' (survey average)';
+  const d = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const brief = document.getElementById('brief').innerHTML;
+  const logo = document.querySelector('.brand svg').outerHTML.replace('<svg ','<svg class="plogo" width="34" height="34" ');
+  const chart = document.getElementById('lineChart').innerHTML.replace('<svg ','<svg class="psvg" ');
+  const hname = state.hedge==='ea' ? 'Hedge index: euro area excl. tobacco' : 'Hedge index: France excl. tobacco';
+  return `<div class="pd"><div class="ph"><span class="pbrand">${logo}<span class="pw">écart</span></span><span class="pm">Client briefing · ${d}</span></div>` +
+    `<p class="pmeta"><b>Basket:</b> ${esc(who)} &nbsp; <b>Hedge:</b> ${esc(hedgeLabel())} &nbsp; <b>Annual withdrawals:</b> ${document.getElementById('wHint').textContent.split('.')[0].replace('Annual withdrawals: ','')}</p>` +
+    `<p class="ptoday">${document.getElementById('today').innerHTML}</p><p class="pverdict">${document.getElementById('verdict').innerHTML}</p>` +
+    `<div class="pchart"><h4>Client inflation against the hedge index, 2016–2025, as if today’s basket had been held</h4>${chart}` +
+    `<p class="plegend"><span class="sw" style="background:#0B3A4A"></span>Client basket <span class="sw" style="background:#A87B2F"></span>${hname} <span class="sw" style="background:#56676F;height:2px"></span>Official French inflation <span class="sw" style="background:rgba(200,16,46,.3)"></span>Uncovered <span class="sw" style="background:rgba(62,143,132,.3)"></span>Over-covered. Shaded band: shock months.</p></div>` +
+    `<h4>Key findings</h4><ol>${document.getElementById('findings').innerHTML}</ol><div class="pbrief">${brief}</div>` +
+    `<p class="pfoot">Prepared with écart (prototype by Group C, International University of Monaco). Figures: Eurostat HICP and Household Budget Survey; for the banker’s review before the client meeting.</p></div>`;
+}
+const PRINT_CSS = `.pd{--harbour:#0B3A4A;--brass:#A87B2F;--red:#C8102E;--red-soft:rgba(200,16,46,.16);--glass:#3E8F84;--glass-soft:rgba(62,143,132,.18);--surface:#FFFFFF;--ink:#13222B;--muted:#56676F;--line:#D8DFE1;--band:rgba(168,123,47,.10);font:10.5pt/1.45 "Public Sans",Arial,sans-serif;color:#13222B;background:#fff;max-width:760px;margin:0 auto;padding:32px 36px}.pd svg text{fill:#56676F;font:12px Arial,sans-serif}.ph{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0B3A4A;padding-bottom:8px;margin-bottom:12px}.pbrand{display:flex;align-items:center;gap:10px}.plogo{width:34px;height:34px;flex:none}.pw{font:600 22pt "Source Serif 4",Georgia,serif;color:#0B3A4A}.pm{color:#56676F}.pmeta{color:#56676F;font-size:9.5pt}.ptoday{border-left:4px solid #A87B2F;padding:6px 10px;background:#FAF6EE}.pverdict{font:600 13.5pt/1.3 "Source Serif 4",Georgia,serif;margin:12px 0}.pchart{break-inside:avoid;page-break-inside:avoid;margin:10px 0 6px}.psvg{width:100%;height:auto;display:block}.plegend{font-size:8.5pt;color:#56676F;margin:4px 0 0}.plegend .sw{display:inline-block;width:14px;height:8px;border-radius:2px;margin:0 4px 0 8px;vertical-align:middle}.pd h4{font:600 10pt Arial,sans-serif;color:#56676F;margin:14px 0 4px}.pd ol,.pd ul{padding-left:20px}.pbrief{break-inside:auto}.pbrief .bh{font:600 13pt "Source Serif 4",Georgia,serif}.pbrief .pill{font-size:9pt;color:#A87B2F}.pfoot{color:#56676F;font-size:8.5pt;border-top:1px solid #D8DFE1;padding-top:8px;margin-top:16px}.tag2{font-weight:700;color:#A87B2F;margin-right:6px}.pd b.neg,.pd .neg{color:#C8102E}.pd .pos{color:#3E8F84}@media print{@page{size:A4;margin:16mm 16mm 18mm}.pd{max-width:none;padding:0}}`;
+document.getElementById('pdfBrief').addEventListener('click',()=>{
+  const pa=document.getElementById('printArea'); pa.innerHTML = `<style>${PRINT_CSS}</style>` + briefDoc();
+  document.body.classList.add('printing'); window.print(); setTimeout(()=>document.body.classList.remove('printing'), 500);
+});
+document.getElementById('htmlBrief').addEventListener('click',()=>{
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>écart client briefing</title><link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=Source+Serif+4:wght@600&display=swap" rel="stylesheet"><style>${PRINT_CSS}body{margin:0;background:#F5F7F6}.pd{margin:24px auto;box-shadow:0 1px 6px rgba(0,0,0,.08)}@media print{body{background:#fff}.pd{margin:0;box-shadow:none}}</style></head><body>${briefDoc()}</body></html>`;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download='ecart_client_briefing.html'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 1000);
+});
+document.getElementById('runBriefDemo').addEventListener('click',()=>{
+  const k = briefKey(); if(!k) return; const b=document.getElementById('runBriefDemo'); b.disabled=true;
+  document.getElementById('brief').hidden=true; document.getElementById('briefStatus').textContent='Writing the briefing…';
+  setTimeout(()=>{ showBrief(RECORDED_BRIEFS[k], true); document.getElementById('briefStatus').textContent=''; b.disabled=false; }, 1400);
+});
+
+// ---------- controls ----------
+const sel = document.getElementById('profile');
+function fillProfiles(){
+  const o = k=>`<option value="${k}" ${k===state.profile?'selected':''}>${k}</option>`, ks=Object.keys(D.profiles);
+  sel.innerHTML = `<optgroup label="Survey averages by age">${ks.slice(0,4).map(o).join('')}</optgroup><optgroup label="Survey averages by income">${ks.slice(4).map(o).join('')}</optgroup>` +
+    (state.custom?`<option value="__custom" ${state.profile==='__custom'?'selected':''}>${state.customLabel||'Basket from transactions'}</option>`:'');
+}
+sel.addEventListener('change',()=>{state.profile=sel.value; document.getElementById('profileHint').textContent = state.profile==='__custom' ? 'Built from the classified transactions: real spending, not a group average.' : 'Survey average for France (Eurostat, 2015). Replace it with a basket built from the client’s transactions.'; renderReview();});
+document.querySelectorAll('#hedgeSeg button').forEach(b=>b.addEventListener('click',()=>{state.hedge=b.dataset.h; document.querySelectorAll('#hedgeSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderReview();}));
+document.querySelectorAll('#yearPick button').forEach(b=>b.addEventListener('click',()=>{state.year=isNaN(+b.dataset.y)?b.dataset.y:+b.dataset.y; document.querySelectorAll('#yearPick button').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderReview();}));
+['portfolio','rate'].forEach(id=>document.getElementById(id).addEventListener('input',renderReview));
+
+function showView(v){
+  const tx = v==='transactions';
+  document.getElementById('view-review').hidden = tx; document.getElementById('view-tx').hidden = !tx;
+  document.getElementById('t-review').setAttribute('aria-selected',!tx); document.getElementById('t-tx').setAttribute('aria-selected',tx);
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{ location.hash = b.dataset.view==='transactions'?'transactions':'review'; }));
+window.addEventListener('hashchange',()=>showView(location.hash.slice(1)));
+document.querySelector('.brand').addEventListener('click',e=>{ e.preventDefault(); if(location.hash!=='#review') location.hash='review'; showView('review'); window.scrollTo({top:0,behavior:'smooth'}); });
+
+// ---------- transactions ----------
+const RULES=[['CARREFOUR','CP01'],['LECLERC','CP01'],['AUCHAN','CP01'],['MONOPRIX','CP01'],['LIDL','CP01'],['INTERMARCHE','CP01'],['CASINO','CP01'],['FRANPRIX','CP01'],['PICARD','CP01'],['SPAR','CP01'],['BOULANGERIE','CP01'],['TABAC','CP02'],['NICOLAS','CP02'],['ZARA','CP03'],['H&M','CP03'],['MANGO','CP03'],['LOYER','CP041'],['LEROY MERLIN','CP043'],['CASTORAMA','CP043'],['VEOLIA','CP044'],['SUEZ','CP044'],['EDF','CP045'],['ENGIE','CP045'],['IKEA','CP05'],['DARTY','CP05'],['PHARMACIE','CP06'],['DOCTOLIB','CP06'],['OPTIC','CP06'],['TOTALENERGIES','CP072'],['TOTAL ','CP072'],['ESSO','CP072'],['SHELL','CP072'],['STATION','CP072'],['PEAGE','CP072'],['PARKING','CP072'],['SNCF','CP073'],['RATP','CP073'],['UBER','CP073'],['BOLT','CP073'],['EASYJET','CP073'],['RYANAIR','CP073'],['AIR FRANCE','CP073'],['ORANGE','CP08'],['SFR','CP08'],['BOUYGUES','CP08'],['FREE MOBILE','CP08'],['NETFLIX','CP09'],['SPOTIFY','CP09'],['FNAC','CP09'],['CINEMA','CP09'],['DECATHLON','CP09'],['UDEMY','CP10'],['RESTAURANT','CP11'],['MCDONALD','CP11'],['STARBUCKS','CP11'],['DELIVEROO','CP11'],['UBER EATS','CP11'],['HOTEL','CP11'],['AIRBNB','CP11'],['SEPHORA','CP12'],['COIFF','CP12'],['ASSURANCE','CP12'],['AMAZON','CP05']];
+const ruleOf = d => { let hit=null; const u=d.toUpperCase(); for(const [k,c] of RULES) if(u.includes(k)) hit=c; return hit; };
+const EXAMPLE = `2026-02-17; CB DYNEFF ST JULIEN 2515444; 11.55
+2026-08-10; CB E.LECLERC; 9.15
+2026-09-02; CB ZARA FRANCE; 25.95
+2026-09-04; CB CARREFOUR MARKET; 21.15
+2026-09-08; CB CARREFOUR CITY; 28.90
+2026-09-10; PRLV SEPA FREE MOBILE; 20.18
+2026-09-12; CB PARKINGS MONACO MONACO CEDEX; 1.00
+2026-09-13; CB CARREFCITYSCO MENTON; 6.07
+2026-09-15; CB PASTA VERSA MONACO; 12.18
+2026-09-16; CB NICOLAS MONACO; 7.98
+2026-09-16; CB BOLT.EU TALLINN; 36.29
+2026-09-18; CB EXPL HOTEL SBM; 46.00
+2026-09-18; CB BOLT.EU TALLINN; 64.56
+2026-09-20; CB MCGRAW-HIL LONDON; 49.80
+2026-09-22; CB UBER *TRIP; 51.08
+2026-09-23; CB ZARA FRANCE NICE; 80.31
+2026-09-23; CB TABAC LE MEGOT; 10.00
+2026-09-24; PRLV ORANGE SA-ORANGE; 40.88
+2026-09-24; CB UBER *TRIP; 30.20
+2026-09-24; CB SNCF VOYAGEURS; 6.10
+2026-09-27; CB SC BOUCHERIE DE NICE; 17.33
+2026-10-02; CB ESCOTA 06MANDELIEU; 3.40
+2026-10-04; CB CARREFOUR CITY NICE; 48.38
+2026-10-04; CB 2699 - PARKING F ZAVENTEM; 5.00
+2026-10-07; CB CARREFOUR CITY; 59.76
+2026-10-09; CB NYX*LESPLAISIRSDUPALAIS; 2.50
+2026-10-17; CB EASYJET; 193.34
+2026-10-17; CB STATION AVIA 4296172; 120.74
+2026-10-18; CB SEPHORA 4320258; 1.99
+2026-10-20; BIZUM COMPRA BIZUM IBERDROLA; 12.14`;
+const EXAMPLES = {
+ s1:{label:'Student 1 (under 30)', who:'Student 1, under 30', text:`2026-08-10; CB E.LECLERC; 9.15
+2026-09-02; CB ZARA FRANCE; 25.95
+2026-09-04; CB CARREFOUR MARKET; 21.15
+2026-09-08; CB CARREFOUR CITY; 28.90
+2026-09-12; CB UBR* PENDING.UBER.COM; 11.34
+2026-09-14; CB PASTA VERSA MONACO; 3.50
+2026-09-18; CB EXPL HOTEL SBM; 46.00
+2026-09-22; CB MARCHE U; 94.42
+2026-09-23; CB TABAC LE MEGOT; 10.00
+2026-09-24; PRLV ORANGE SA-ORANGE; 40.88
+2026-09-24; CB SNCF VOYAGEURS; 6.10
+2026-10-07; CB CARREFOUR CITY; 59.76
+2026-10-09; CB NYX*LESPLAISIRSDUPALAIS; 2.50
+2026-10-11; CB UBR* PENDING.UBER.COM; 36.95
+2026-10-15; CB EMV BORNES NFC; 4.90
+2026-10-16; CB PARKINGS MONACO; 6.00
+2026-10-17; CB EASYJET; 193.34
+2026-10-17; CB STATION AVIA 4296172; 120.74
+2026-10-18; CB SEPHORA 4320258; 1.99
+2026-10-20; BIZUM COMPRA BIZUM IBERDROLA; 12.14
+2026-10-23; PRLV ORANGE SA-ORANGE; 40.48`},
+ s2:{label:'Student 2 (under 30)', who:'Student 2, under 30', text:`2026-09-15; PASTA VERSA MONACO FRA; 12.18
+2026-09-16; ZEST- KEOLIS MENTON FRA; 2.31
+2026-09-16; NICOLAS MONACO FRA; 7.98
+2026-09-16; BOLT.EU TALLINN EST; 36.29
+2026-09-18; BOLT.EU TALLINN EST; 64.56
+2026-09-22; UBER *TRIP; 51.08
+2026-09-23; ZARA FRANCE NICE FRA; 20.61
+2026-09-23; ZARA FRANCE NICE FRA; 80.31
+2026-09-24; UBER *TRIP; 30.20
+2026-09-25; CARREFOUR CITY NICE FRA; 19.55
+2026-09-27; SC BOUCHERIE DE NICE FRA; 17.33
+2026-09-27; CARREFOUR CITY NICE FRA; 13.12
+2026-09-29; BOLT.EU TALLINN EST; 37.47
+2026-10-04; CARREFOUR CITY NICE FRA; 48.38
+2026-10-05; LK MARKET NICE FRA; 3.39
+2026-10-06; HELP.HBOMAX.COM NEW YORK NY; 10.99
+2026-10-09; NICOLAS MONACO FRA; 13.42
+2026-10-11; CARREFOUR CITY NICE FRA; 21.39`},
+ s3:{label:'Student 3 (under 30)', who:'Student 3, under 30', text:`2026-09-07; CARTE CARREFOUR MONACO MONACO; 3.29
+2026-09-10; PRLV SEPA FREE MOBILE; 20.18
+2026-09-12; CARTE PARKINGS MONACO MONACO CEDEX; 1.00
+2026-09-13; CARTE CARREFCITYSCO MENTON; 6.07
+2026-09-20; CARTE MCGRAW-HIL LONDON; 49.80
+2026-09-26; CARTE PARKINGS MONACO MONACO CEDEX; 2.80
+2026-10-02; CARTE ESCOTA 06MANDELIEU L; 1.50
+2026-10-02; CARTE ESCOTA 06MANDELIEU L; 3.40
+2026-10-04; CARTE 2699 - PARKING F ZAVENTEM; 5.00
+2026-10-04; CARTE GAUFRE DE BXL BRUXELLES; 33.50
+2026-10-04; CARTE EASYJET AIR ZAVENTEM; 109.49
+2026-10-04; CARTE STIB BRUXELLES; 4.80`},
+ a1:{label:'Adult 1 (aged 30 to 44)', who:'Adult 1, aged 30 to 44', text:`2026-08-31; CB MARCHE U; 282.78
+2026-09-03; CB STATION-SERVICE; 40.71
+2026-09-06; CB HOTEL OLIVIA BALME BARCELONA; 18.48
+2026-09-06; CB RESTAURANT GRESCA BARCELONA; 262.00
+2026-09-07; PRLV SEPA SMEG ELECTRICITE; 191.24
+2026-09-07; CB EMV BORNES NFC; 68.40
+2026-09-12; CB MARCHE U; 286.21
+2026-09-13; CB NETFLIX.COM; 21.99
+2026-09-14; CB STATION-SERVICE; 39.83
+2026-09-15; CB DELIVEROO; 113.97
+2026-09-15; CB ZARA 3443; 189.80
+2026-09-16; CB STATION ESSO; 132.75
+2026-09-16; CB SC ESSO; 18.00
+2026-09-17; PRLV SEPA ORANGE SA-ORANGE ABONNEMENT FIBRE; 51.99
+2026-09-18; CB UBR* PENDING.UBER. AMSTERDAM; 28.98
+2026-09-18; CB PARKING ST LOUIS; 6.10
+2026-09-21; PRLV SEPA AUTOROUTES DU SUD DE LA FRANCE; 5.40
+2026-09-21; CB TRANSAVIA; 405.00
+2026-09-22; CB STATION-SERVICE; 39.03
+2026-09-22; CB FNAC.COM; 21.50
+2026-09-24; CB UBR* PENDING.UBER. AMSTERDAM; 12.78
+2026-09-25; CB DELIVEROO; 110.18
+2026-09-25; CB AMAZON PRIME FR; 6.99
+2026-09-25; CB UEP*SUPER U; 182.16
+2026-09-25; PRLV SEPA ORANGE SA-ORANGE ABONNEMENT MOBILE; 42.72
+2026-09-26; CB SIXT MONACO; 527.72`}
+};
+let exampleKey = '';
+// AI classifications recorded from Claude (Anthropic) on 5 November 2026 for the four real examples, line by line: [COICOP code, confidence]
+const RECORDED = {
+ s1:[['CP01',.8],['CP03',.97],['CP01',.97],['CP01',.97],['CP073',.95],['CP11',.7],['CP11',.7],['CP01',.95],['CP02',.9],['CP08',.97],['CP073',.97],['CP01',.97],['CP11',.55],['CP073',.95],['CP072',.55],['CP072',.9],['CP073',.97],['CP072',.95],['CP12',.95],['CP045',.9],['CP08',.97]],
+ s2:[['CP11',.7],['CP073',.85],['CP02',.85],['CP073',.9],['CP073',.9],['CP073',.95],['CP03',.97],['CP03',.97],['CP073',.95],['CP01',.97],['CP01',.9],['CP01',.97],['CP073',.9],['CP01',.97],['CP01',.7],['CP09',.95],['CP02',.85],['CP01',.97]],
+ s3:[['CP01',.97],['CP08',.97],['CP072',.9],['CP01',.85],['CP10',.7],['CP072',.9],['CP072',.85],['CP072',.85],['CP072',.9],['CP11',.85],['CP073',.97],['CP073',.85]],
+ a1:[['CP01',.95],['CP072',.9],['CP11',.85],['CP11',.95],['CP045',.95],['CP072',.55],['CP01',.95],['CP09',.97],['CP072',.9],['CP11',.95],['CP03',.97],['CP072',.95],['CP072',.75],['CP08',.97],['CP073',.95],['CP072',.9],['CP072',.9],['CP073',.97],['CP072',.9],['CP09',.75],['CP073',.95],['CP11',.95],['CP09',.85],['CP01',.9],['CP08',.97],['CP073',.85]]
+};
+function syncRec(){ const b=document.getElementById('runRec'); if(sample){ b.hidden=true; return; } const ok = !!exampleKey && document.getElementById('txInput').value===EXAMPLES[exampleKey].text; b.hidden = !ok; if(!ok){ clearInterval(demoTimer); b.disabled=false; document.getElementById('demoBadge').hidden=true; } }
+const VIDEO_URL = '';  // paste the link to the screen recording of the live AI here
+if (VIDEO_URL) { const v=document.getElementById('videoLink'); v.href=VIDEO_URL; v.hidden=false; }
+let demoTimer=null, lastRecKey='';
+document.getElementById('runRec').addEventListener('click',()=>{
+  if(!exampleKey) return; clearInterval(demoTimer);
+  const btn=document.getElementById('runRec'); btn.disabled=true;
+  tx = parse(EXAMPLES[exampleKey].text); const rec = RECORDED[exampleKey];
+  tx.forEach(t=>{ t.ai=null; t.conf=null; t.final=t.rule; });
+  document.getElementById('demoBadge').hidden=false; renderTx();
+  let i=0; status(`Reading ${tx.length} lines…`);
+  demoTimer=setInterval(()=>{
+    if(i<tx.length && rec[i]){ tx[i].ai=rec[i][0]; tx[i].conf=rec[i][1]; tx[i].final=tx[i].ai; i++; status(`Classifying line ${i} of ${tx.length}…`); renderTx(); }
+    else { clearInterval(demoTimer); lastRecKey=exampleKey; btn.disabled=false; renderTx(); status(`AI classified ${tx.filter(t=>t.ai).length} of ${tx.length} lines. Lines where it disagrees with the rules are highlighted.`); }
+  }, 140);
+});
+let tx = [];
+function parse(text){
+  return text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{
+    const parts=l.split(/[;\t]|,(?=\s*[A-Za-z])/).map(s=>s.trim()).filter(Boolean);
+    const amtM = l.match(/(-?\d[\d\s.]*[.,]\d{2}|-?\d+)\s*(EUR|€)?\s*$/i);
+    const amount = amtM ? Math.abs(parseFloat(amtM[1].replace(/\s/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.'))) : 0;
+    let desc = parts.length>=3 ? parts.slice(1,-1).join(' ') : l.replace(amtM?amtM[0]:'','').replace(/^\d{4}-\d{2}-\d{2}|^\d{2}\/\d{2}(\/\d{2,4})?/,'').trim();
+    const date = (l.match(/^\d{4}-\d{2}-\d{2}|^\d{2}\/\d{2}(\/\d{2,4})?/)||[''])[0];
+    return {date, desc, amount, rule:ruleOf(desc), ai:null, conf:null, final:null};
+  });
+}
+const status = t => document.getElementById('txStatus').textContent = t;
+function renderTx(){
+  const box=document.getElementById('txTable');
+  document.getElementById('sLines').textContent = tx.length;
+  document.getElementById('sMiss').textContent = tx.length ? tx.filter(t=>!t.rule).length : '–';
+  const haveAI = tx.some(t=>t.ai);
+  document.getElementById('sDiff').textContent = haveAI ? tx.filter(t=>t.ai && t.rule!==t.ai).length : '–';
+  document.getElementById('useBasket').disabled = !tx.some(t=>t.final && t.final!=='EXCL');
+  document.getElementById('exportBox').hidden = !haveAI;
+  if (haveAI) document.getElementById('exportCodes').value = tx.map(t=>t.ai||'').join('\n');
+  if(!tx.length){ box.innerHTML='<div class="empty">Paste transactions or load the example statement to start.</div>'; return; }
+  const opts = c => Object.keys(LABELS).map(k=>`<option value="${k}" ${k===c?'selected':''}>${k} ${LABELS[k]}</option>`).join('');
+  box.innerHTML = `<table><thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Rules</th><th>AI</th><th>Final category</th></tr></thead><tbody>${
+    tx.map((t,i)=>`<tr><td class="d" data-l="Date">${esc(t.date)}</td><td class="desc" data-l="">${esc(t.desc)}</td><td class="num" data-l="Amount">${t.amount.toFixed(2)}</td>
+      <td data-l="Rules">${t.rule?`<span class="pill">${t.rule}</span>`:'<span class="pill miss">no match</span>'}</td>
+      <td data-l="AI">${t.ai?`<span class="pill ${t.ai!==t.rule?'diff':''}">${t.ai}</span>${t.conf!=null?` <span style="color:var(--muted);font-size:12px">${Math.round(t.conf*100)}%</span>`:''}`:'<span style="color:var(--muted)">–</span>'}</td>
+      <td class="fin" data-l="Final"><select data-i="${i}" aria-label="Final category for line ${i+1}"><option value="">Choose</option>${opts(t.final)}</select></td></tr>`).join('')}</tbody></table>`;
+  box.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{tx[+s.dataset.i].final=s.value||null; renderTx();}));
+}
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+document.getElementById('exSel').addEventListener('change',e=>{ const k=e.target.value; if(!k) return; const ex=EXAMPLES[k]; document.getElementById('txInput').value=ex.text; exampleKey=k; tx=[]; renderTx(); syncRec(); const n=ex.text.split('\n').length; status(`${ex.label} loaded: ${n} real card and bank lines from an anonymised statement (a selection of the statement; names, card and account numbers removed)${k==='s2'?'. Amounts in US dollars':''}. Classify it with rules, then with AI.`); });
+document.getElementById('txInput').addEventListener('input',()=>{ if(!exampleKey || document.getElementById('txInput').value!==EXAMPLES[exampleKey].text){ exampleKey=''; document.getElementById('exSel').value=''; } syncRec(); });
+document.getElementById('runRules').addEventListener('click',()=>{ lastRecKey=''; tx=parse(document.getElementById('txInput').value); tx.forEach(t=>t.final=t.rule); renderTx(); status(tx.length?`Rules applied to ${tx.length} lines.`:'Nothing to classify yet: paste at least one transaction.'); });
+document.getElementById('useBasket').addEventListener('click',()=>{
+  const sum={}; tx.forEach(t=>{ if(t.final && t.final!=='EXCL') sum[t.final]=(sum[t.final]||0)+t.amount; });
+  const tot=Object.values(sum).reduce((a,b)=>a+b,0); if(!tot) return;
+  state.custom = D.codes.map(c=>(sum[c]||0)/tot); state.customLabel = exampleKey ? EXAMPLES[exampleKey].label+', real data' : 'Basket from transactions'; state.customWho = exampleKey ? EXAMPLES[exampleKey].who : ''; state.recKey = lastRecKey; state.profile='__custom'; fillProfiles();
+  document.getElementById('profileHint').textContent='Built from the classified transactions: real spending, not a group average.';
+  location.hash='review'; renderReview();
+});
+
+// AI classification through the claude.ai runtime (hidden when unavailable)
+let sample=null, ctl=null;
+(async()=>{ try{ sample = window.claude && await window.claude.use('sample'); }catch(e){ sample=null; }
+  if(sample){ document.getElementById('runAI').hidden=false; document.getElementById('runBrief').hidden=false; syncBrief(); }
+  else { document.getElementById('aiNote').textContent='Live AI classification runs when this page is opened in Claude. On this public page, load a real example and press “Classify with AI (demo)” to see what the AI returns.'; }
+  syncRec();
+})();
+document.getElementById('stopAI').addEventListener('click',()=>ctl&&ctl.abort());
+document.getElementById('runAI').addEventListener('click',async()=>{
+  if(!tx.length) tx=parse(document.getElementById('txInput').value);
+  if(!tx.length){ status('Nothing to classify yet: paste at least one transaction.'); return; }
+  const btn=document.getElementById('runAI'); btn.disabled=true; document.getElementById('stopAI').hidden=false; ctl=new AbortController();
+  status('Thinking…');
+  const list = Object.entries(LABELS).map(([k,v])=>`${k}: ${v}`).join('\n');
+  const lines = tx.map((t,i)=>`${i}\t${t.desc}\t${t.amount.toFixed(2)} EUR`).join('\n');
+  const prompt = `You classify bank card and direct-debit lines of a household in France or Monaco into COICOP categories used by Eurostat.\nCategories:\n${list}\nRules: use the merchant name, the payment type (CB = card, PRLV = direct debit, VIR = transfer) and the amount. TotalEnergies can be fuel (CP072, card payment at a station) or an electricity and gas bill (CP045, direct debit). Home insurance and other insurance are CP12. Transfers to savings, taxes and loan repayments are EXCL. If unsure, pick the most likely category and give a lower confidence.\nReturn only JSON: an array of objects {"i": line number, "code": category code, "confidence": number from 0 to 1}, one per line, nothing else.\nLines (number, description, amount):\n${lines}`;
+  try{
+    const out = await sample.json(prompt,{modelTier:'quick', signal:ctl.signal});
+    (Array.isArray(out)?out:[]).forEach(o=>{ const t=tx[o.i]; if(t && LABELS[o.code]){ t.ai=o.code; t.conf=typeof o.confidence==='number'?o.confidence:null; t.final=o.code; } });
+    tx.forEach(t=>{ if(!t.final) t.final=t.rule; });
+    renderTx(); status(`AI classified ${tx.filter(t=>t.ai).length} of ${tx.length} lines. Lines where it disagrees with the rules are highlighted.`);
+  }catch(e){
+    const msg={not_granted:'AI classification was not allowed in this view. Rules and manual categories still work.',rate_limited:'Too many requests just now. Wait a minute, then classify again.',aborted:'Stopped. Nothing was changed.'}[e&&e.code];
+    if(e&&e.code==='not_granted') btn.hidden=true;
+    status(msg || 'The AI answer could not be read. Classify with rules, then adjust the categories by hand.');
+  }finally{ btn.disabled=false; document.getElementById('stopAI').hidden=true; }
+});
+
+fillProfiles(); showView(location.hash.slice(1)); renderReview();
+</script>
+</body>
+</html>
