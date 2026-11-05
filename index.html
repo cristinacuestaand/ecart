@@ -213,9 +213,9 @@ td.d{white-space:nowrap}
       <div class="two">
         <section class="panel">
           <h3>What drives the gap
-            <span class="yearpick" id="yearPick"><button type="button" data-y="2022" aria-pressed="true">2022</button><button type="button" data-y="2023" aria-pressed="false">2023</button></span>
+            <span class="yearpick" id="yearPick"><button type="button" data-y="shock" aria-pressed="false">Shock 2021–24</button><button type="button" data-y="2022" aria-pressed="true">2022</button><button type="button" data-y="2023" aria-pressed="false">2023</button><button type="button" data-y="today" aria-pressed="false">Today</button></span>
           </h3>
-          <p class="d">Contribution of each category to the gap with official inflation: (client weight − official weight) × category inflation.</p>
+          <p class="d">Contribution of each category to the gap with official inflation: (client weight − official weight) × category inflation. Shock 2021–24: average of the 29 shock months (October 2021 to February 2024). Today: September 2026 prices with 2025 official weights.</p>
           <div class="chart" id="drivers"></div>
         </section>
         <section class="panel">
@@ -353,8 +353,20 @@ function lineChart(r){
   const lc=document.getElementById('lineChart'); lc.innerHTML = s+'</svg>'; lc.scrollLeft = lc.scrollWidth;
 }
 function drivers(r){
-  const y=state.year, off=D.official[String(y)], idx=MONTHS.map((m,i)=>m.startsWith(String(y))?i:-1).filter(i=>i>=0);
-  const contrib = D.codes.map((c,i)=>({c, v:(r.w[i]-off[i])*mean(idx.map(t=>D.inf[i][t]))}));
+  const y=state.year; let contrib, ylab;
+  if (y==='shock') {
+    const idx=[]; for(let t=0;t<N;t++) if(flag[t]) idx.push(t);
+    contrib = D.codes.map((c,i)=>({c, v:mean(idx.map(t=>(r.w[i]-D.official[MONTHS[t].slice(0,4)][i])*D.inf[i][t]))}));
+    ylab = 'the shock months';
+  } else if (y==='today') {
+    const off=D.official['2025'];
+    contrib = D.codes.map((c,i)=>({c, v:(r.w[i]-off[i])*TODAY.inf[i]}));
+    ylab = 'Sep 2026';
+  } else {
+    const off=D.official[String(y)], idx=MONTHS.map((m,i)=>m.startsWith(String(y))?i:-1).filter(i=>i>=0);
+    contrib = D.codes.map((c,i)=>({c, v:(r.w[i]-off[i])*mean(idx.map(t=>D.inf[i][t]))}));
+    ylab = String(y);
+  }
   const total = contrib.reduce((s,o)=>s+o.v,0);
   const rows = contrib.slice().sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,8);
   const W=420,rowH=26,H=rows.length*rowH+34, lab=178, bend=362, mid=lab+(bend-lab)/2, span=Math.max(...rows.map(o=>Math.abs(o.v)),1e-6), sc=((bend-lab)/2-6)/span;
@@ -364,7 +376,7 @@ function drivers(r){
     s+=`<text x="${lab-8}" y="${yy+13}" text-anchor="end" style="fill:var(--ink)">${LABELS[o.c]}</text>`;
     s+=`<rect x="${xx}" y="${yy}" width="${Math.max(w,1)}" height="16" rx="3" fill="${o.v>=0?'var(--red)':'var(--glass)'}"/>`;
     s+=`<text x="${W-2}" y="${yy+13}" text-anchor="end">${o.v>=0?'+':''}${pts(o.v)}</text>`; });
-  s+=`<text x="0" y="${H-8}" style="fill:var(--ink);font-weight:600">Sum of contributions in ${y}: ${total>=0?'+':''}${pts(total)}</text>`;
+  s+=`<text x="0" y="${H-8}" style="fill:var(--ink);font-weight:600">Sum of contributions in ${ylab}: ${total>=0?'+':''}${pts(total)}</text>`;
   document.getElementById('drivers').innerHTML = s+'</svg>';
 }
 function basket(r){
@@ -533,7 +545,7 @@ function fillProfiles(){
 }
 sel.addEventListener('change',()=>{state.profile=sel.value; document.getElementById('profileHint').textContent = state.profile==='__custom' ? 'Built from the classified transactions: real spending, not a group average.' : 'Survey average for France (Eurostat, 2015). Replace it with a basket built from the client’s transactions.'; renderReview();});
 document.querySelectorAll('#hedgeSeg button').forEach(b=>b.addEventListener('click',()=>{state.hedge=b.dataset.h; document.querySelectorAll('#hedgeSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderReview();}));
-document.querySelectorAll('#yearPick button').forEach(b=>b.addEventListener('click',()=>{state.year=+b.dataset.y; document.querySelectorAll('#yearPick button').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderReview();}));
+document.querySelectorAll('#yearPick button').forEach(b=>b.addEventListener('click',()=>{state.year=isNaN(+b.dataset.y)?b.dataset.y:+b.dataset.y; document.querySelectorAll('#yearPick button').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderReview();}));
 ['portfolio','rate'].forEach(id=>document.getElementById(id).addEventListener('input',renderReview));
 
 function showView(v){
