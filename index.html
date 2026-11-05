@@ -263,12 +263,6 @@ td.d{white-space:nowrap}
     <h3>Classified transactions</h3>
     <p class="d">The final category is the AI answer when there is one, otherwise the rule. Change any line before using the basket.</p>
     <div class="tbl" id="txTable"><div class="empty">Paste transactions or load the example statement to start.</div></div>
-    <div id="exportBox" hidden style="margin-top:16px">
-      <h3>AI answers to paste into the workbook</h3>
-      <p class="d">One code per line, in the same order as the pasted transactions. Select all, copy, and paste into column F of the member’s Pilot sheet, starting at row 6.</p>
-      <label for="exportCodes" style="position:absolute;left:-9999px">AI codes</label>
-      <textarea id="exportCodes" readonly style="min-height:120px"></textarea>
-    </div>
   </section>
 </div>
 </div></main>
@@ -712,8 +706,6 @@ function renderTx(){
   const haveAI = tx.some(t=>t.ai);
   document.getElementById('sDiff').textContent = haveAI ? tx.filter(t=>t.ai && t.rule!==t.ai).length : '–';
   document.getElementById('useBasket').disabled = !tx.some(t=>t.final && t.final!=='EXCL');
-  document.getElementById('exportBox').hidden = !haveAI;
-  if (haveAI) document.getElementById('exportCodes').value = tx.map(t=>t.ai||'').join('\n');
   if(!tx.length){ box.innerHTML='<div class="empty">Paste transactions or load the example statement to start.</div>'; return; }
   const opts = c => Object.keys(LABELS).map(k=>`<option value="${k}" ${k===c?'selected':''}>${k} ${LABELS[k]}</option>`).join('');
   box.innerHTML = `<table><thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Rules</th><th>AI</th><th>Final category</th></tr></thead><tbody>${
